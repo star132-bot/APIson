@@ -1,0 +1,16 @@
+{
+  "name": "火山引擎 (Anthropic 协议)",
+  "base_url": "https://ark.cn-beijing.volces.com/api/plan",
+  "protocol": "anthropic",
+  "api_key_env": "ANTHROPIC_API_KEY",
+  "default_model": "ep-xxxx",
+  "models": [
+    {
+      "id": "ep-xxxx",
+      "description": "请填入你在火山引擎方舟控制台创建的接入点 Endpoint ID (ep-xxxx)"
+    }
+  ],
+  "headers": {
+    "anthropic-version": "2023-06-01"
+  }
+}

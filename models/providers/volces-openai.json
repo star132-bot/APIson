@@ -1,0 +1,13 @@
+{
+  "name": "火山引擎 (OpenAI 协议)",
+  "base_url": "https://ark.cn-beijing.volces.com/api/plan/v3",
+  "protocol": "openai_chat",
+  "api_key_env": "VOLCES_OPENAI_API_KEY",
+  "default_model": "ep-xxxx",
+  "models": [
+    {
+      "id": "ep-xxxx",
+      "description": "请填入你在火山引擎方舟控制台创建的接入点 Endpoint ID (ep-xxxx)"
+    }
+  ]
+}

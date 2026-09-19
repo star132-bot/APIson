@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "default_provider": "volces-claude",
+  "providers": {
+    "grok": {
+      "name": "Grok (xAI)",
+      "base_url": "https://194834.xyz/v1",
+      "model": "grok-4.6",
+      "protocol": "openai_chat",
+      "enabled": true,
+      "api_key_env": "XAI_API_KEY",
+      "api_key": "",
+      "context_window": 131072,
+      "max_tokens": 8192,
+      "description": "已通过实测的 Grok-4.6 旗舰模型"
+    },
+    "volces-claude": {
+      "name": "火山引擎 Agent Plan (Anthropic协议)",
+      "base_url": "https://ark.cn-beijing.volces.com/api/plan",
+      "protocol": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "api_key": "",
+      "enabled": true
+    },
+    "volces-openai": {
+      "name": "火山引擎 Agent Plan (OpenAI协议)",
+      "base_url": "https://ark.cn-beijing.volces.com/api/plan/v3",
+      "protocol": "openai_chat",
+      "model": "claude-3-5-sonnet",
+      "api_key": "",
+      "enabled": true,
+      "description": "适配 Cursor, Trae, Roo Code 的 OpenAI 协议"
+    }
+  }
+}

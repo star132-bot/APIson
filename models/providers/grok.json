@@ -1,0 +1,30 @@
+{
+  "name": "Grok (xAI)",
+  "base_url": "https://194834.xyz/v1",
+  "protocol": "openai_chat",
+  "api_key_env": "XAI_API_KEY",
+  "models": [
+    {
+      "id": "grok-4.6",
+      "description": "Grok 4.6 旗舰版本，处理重复任务、复杂推理与代码",
+      "context_window": 131072,
+      "max_tokens": 8192
+    },
+    {
+      "id": "grok-4.6-latest",
+      "description": "Grok 4.6 最新版",
+      "context_window": 131072,
+      "max_tokens": 8192
+    },
+    {
+      "id": "grok-4.5",
+      "description": "Grok 4.5 版本",
+      "context_window": 131072,
+      "max_tokens": 8192
+    }
+  ],
+  "default_model": "grok-4.6",
+  "headers": {
+    "Content-Type": "application/json"
+  }
+}

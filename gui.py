@@ -1,0 +1,1482 @@
+"""
+gui.py — Agent Model Connect 现代化桌面图形化管理面板 (UI 美化增强版)
+基于 CustomTkinter 打造的高颜值 Win11/macOS 暗色微光质感桌面管理控制台。
+
+特色体验：
+1. 【微光质感视觉体系】：采用深空暗蓝 (#0B0F19) 底色、分层晶透卡片与柔光边界 (#1F2E4A)，极具极客与科技感。
+2. 【多模型组合勾选注入】：左侧列表支持多模型复选（Checkboxes），提供“全选 / 清空”并带动态计数。
+3. 【智能专长标签体系】：自动识别模型特性，配备专属色系的专长徽章（深度推理 / 敏捷编码 / 全景长文 / 通用协作）。
+4. 【自执行 Agent 注入提示词】：发给任意 Agent，自动落地工作区配置并分配 Subagents 子代理角色。
+5. 【多格式导出选项卡】：一键切换并复制 Agent 注入提示词、免依赖独立 Python 文件及标准 MCP 插件配置。
+"""
+
+import sys
+import os
+import json
+import time
+import threading
+from pathlib import Path
+from tkinter import messagebox
+import customtkinter as ctk
+
+# 路径定位
+_ROOT = Path(__file__).parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from tools.delegate import delegate_task, _load_state
+
+_STATE_FILE = _ROOT / "models" / "state.json"
+_PROVIDERS_DIR = _ROOT / "models" / "providers"
+
+# 全局主题基调
+ctk.set_appearance_mode("Dark")
+ctk.set_default_color_theme("blue")
+
+# 官方主流模型快速预设
+PRESETS = {
+    "【预设】DeepSeek 官方平台 - deepseek-reasoner (R1) / chat (V3)": {
+        "provider": "deepseek",
+        "name": "DeepSeek (深度求索)",
+        "url": "https://api.deepseek.com",
+        "protocol": "openai_chat",
+        "model": "deepseek-reasoner",
+        "key": "",
+        "models": ["deepseek-reasoner", "deepseek-chat"],
+        "hint": "DeepSeek 官方推理大模型 (R1) 与通用对话模型 (V3)"
+    },
+    "【预设】Grok xAI (中转) - grok-4.6": {
+        "provider": "grok",
+        "name": "Grok (xAI)",
+        "url": "https://194834.xyz/v1",
+        "protocol": "openai_chat",
+        "model": "grok-4.6",
+        "key": "",
+        "models": ["grok-4.6", "grok-beta"],
+        "hint": "已实测通过的 Grok 4.6 旗舰模型"
+    },
+    "【预设】Google Gemini (官方兼容端点) - gemini-2.5-pro / flash": {
+        "provider": "gemini",
+        "name": "Google Gemini",
+        "url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "protocol": "openai_chat",
+        "model": "gemini-2.5-pro",
+        "key": "",
+        "models": ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
+        "hint": "支持超长上下文与全景分析的 Google Gemini 官方端点"
+    },
+    "【预设】火山引擎 Agent Plan - 兼容 Anthropic 协议 (Claude Code)": {
+        "provider": "volces-claude",
+        "name": "火山引擎 (Anthropic 协议)",
+        "url": "https://ark.cn-beijing.volces.com/api/plan",
+        "protocol": "anthropic",
+        "model": "claude-3-5-sonnet",
+        "key": "",
+        "models": ["claude-3-5-sonnet", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite"],
+        "hint": "适配 Claude Code。专属 Base URL: https://ark.cn-beijing.volces.com/api/plan"
+    },
+    "【预设】火山引擎 Agent Plan - 兼容 OpenAI 协议 (Cursor / Trae / Roo)": {
+        "provider": "volces-openai",
+        "name": "火山引擎 (OpenAI 协议)",
+        "url": "https://ark.cn-beijing.volces.com/api/plan/v3",
+        "protocol": "openai_chat",
+        "model": "claude-3-5-sonnet",
+        "key": "",
+        "models": ["claude-3-5-sonnet", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite"],
+        "hint": "适配 Cursor, Trae, OpenClaw, Codex CLI 等。专属 Base URL: https://ark.cn-beijing.volces.com/api/plan/v3"
+    },
+    "【预设】本地 Ollama (本地开源模型)": {
+        "provider": "ollama",
+        "name": "本地 Ollama",
+        "url": "http://localhost:11434/v1",
+        "protocol": "openai_chat",
+        "model": "qwen2.5-coder:7b",
+        "key": "ollama",
+        "models": ["qwen2.5-coder:7b", "deepseek-r1:7b", "llama3.1:8b"],
+        "hint": "本地运行的开源大模型服务"
+    }
+}
+
+
+def load_state_dict() -> dict:
+    if not _STATE_FILE.exists():
+        return {"version": "1.0", "default_provider": None, "providers": {}}
+    try:
+        with open(_STATE_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        with open(_STATE_FILE, encoding="utf-8-sig") as f:
+            return json.load(f)
+
+
+def save_state_dict(data: dict):
+    _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(_STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def detect_model_role(p_id: str, name: str, model: str) -> dict:
+    """根据模型名称智能推断专长角色与子代理配置"""
+    combined = f"{p_id} {name} {model}".lower()
+    if any(k in combined for k in ["deepseek", "r1", "reason", "reasoner", "o1", "o3"]):
+        return {
+            "role_id": f"subagent-reasoner-{p_id}",
+            "role_title": f"深度推理专家 ({name})",
+            "tag": "🧠 深度推理",
+            "tag_color": ("#FEE2E2", "#381014"),
+            "tag_border": "#7F1D1D",
+            "tag_text_color": ("#991B1B", "#F87171"),
+            "specialty": "负责复杂算法设计、数理逻辑推导、核心架构方案选型及疑难 Bug 深度根因排查"
+        }
+    elif any(k in combined for k in ["grok", "coder", "qwen", "codex", "codestral"]):
+        return {
+            "role_id": f"subagent-coder-{p_id}",
+            "role_title": f"敏捷开发专家 ({name})",
+            "tag": "⚡ 敏捷编码",
+            "tag_color": ("#FEF3C7", "#361B04"),
+            "tag_border": "#92400E",
+            "tag_text_color": ("#92400E", "#FBBF24"),
+            "specialty": "负责高吞吐代码实现、复杂模块重构、高覆盖率单元测试及快速样板开发"
+        }
+    elif any(k in combined for k in ["gemini", "sonnet", "claude", "long", "flash"]):
+        return {
+            "role_id": f"subagent-researcher-{p_id}",
+            "role_title": f"全景长文专家 ({name})",
+            "tag": "📚 全景长文",
+            "tag_color": ("#E0E7FF", "#181838"),
+            "tag_border": "#3730A3",
+            "tag_text_color": ("#3730A3", "#818CF8"),
+            "specialty": "负责超长项目上下文理解、全库依赖检索、多模态设计图与原型解析、详尽技术文档生成"
+        }
+    else:
+        return {
+            "role_id": f"subagent-assistant-{p_id}",
+            "role_title": f"通用协同助手 ({name})",
+            "tag": "🤖 通用协作",
+            "tag_color": ("#F3E8FF", "#2E0E46"),
+            "tag_border": "#6B21A8",
+            "tag_text_color": ("#6B21A8", "#C084FC"),
+            "specialty": "负责日常子任务委派分流、格式整理校验、代码微调及跨模型协同"
+        }
+
+
+class ModelConnectGUI(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("Agent Model Connect — 模型助手调度与多模型注入面板")
+        self.geometry("1220x870")
+        self.minsize(1080, 750)
+        self.configure(fg_color=("#F1F5F9", "#0B0F19"))
+
+        # 加载应用图标
+        ico_file = _ROOT / "icon.ico"
+        if ico_file.exists():
+            try:
+                self.iconbitmap(str(ico_file))
+            except Exception:
+                pass
+
+        # 核心数据状态
+        self.current_state = load_state_dict()
+        self.selected_provider_id = None
+        self.selected_for_injection = set(self.current_state.get("providers", {}).keys())
+        self.check_vars = {}
+        self.is_testing = False
+
+        # 构建界面布局
+        self._build_layout()
+        self._refresh_model_list()
+
+    def _build_layout(self):
+        # ─── 顶部导航栏 (微光质感) ─────────────────────────────────────────────
+        header_frame = ctk.CTkFrame(
+            self,
+            corner_radius=0,
+            height=68,
+            fg_color=("#FFFFFF", "#111827"),
+            border_width=1,
+            border_color=("#E2E8F0", "#1F2937")
+        )
+        header_frame.pack(side=ctk.TOP, fill=ctk.X)
+
+        title_box = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_box.pack(side=ctk.LEFT, padx=22, pady=10)
+
+        # 标题行带精致在线徽章
+        title_top = ctk.CTkFrame(title_box, fg_color="transparent")
+        title_top.pack(anchor="w")
+
+        lbl_logo = ctk.CTkLabel(
+            title_top,
+            text="🤖 AGENT MODEL CONNECT",
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
+            text_color=("#0F172A", "#F8FAFC")
+        )
+        lbl_logo.pack(side=ctk.LEFT)
+
+        online_badge = ctk.CTkLabel(
+            title_top,
+            text="● ENGINE ACTIVE",
+            font=ctk.CTkFont(size=9, weight="bold"),
+            fg_color=("#DCFCE7", "#052E16"),
+            text_color=("#16A34A", "#4ADE80"),
+            corner_radius=10,
+            padx=8,
+            pady=1
+        )
+        online_badge.pack(side=ctk.LEFT, padx=(10, 0))
+
+        lbl_sub = ctk.CTkLabel(
+            title_box,
+            text="外部模型接入池 · 多模型组合勾选 · 一键生成 Agent 注入提示词与 Subagents 子代理分工",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            text_color=("#64748B", "#94A3B8")
+        )
+        lbl_sub.pack(anchor="w", pady=(2, 0))
+
+        # 顶部右侧控制区
+        top_right_box = ctk.CTkFrame(header_frame, fg_color="transparent")
+        top_right_box.pack(side=ctk.RIGHT, padx=22)
+
+        # 主题切换胶囊按钮
+        self.theme_switch = ctk.CTkSegmentedButton(
+            top_right_box,
+            values=["深色", "浅色", "系统"],
+            command=self._on_theme_changed,
+            font=ctk.CTkFont(size=11),
+            selected_color="#6366F1",
+            selected_hover_color="#4F46E5"
+        )
+        self.theme_switch.set("深色")
+        self.theme_switch.pack(side=ctk.LEFT, padx=(0, 14))
+
+        btn_gateway = ctk.CTkButton(
+            top_right_box,
+            text="🚀 本地 OpenAI 网关",
+            width=140,
+            height=34,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#0284C7",
+            hover_color="#0369A1",
+            corner_radius=8,
+            command=self._start_gateway_threaded
+        )
+        btn_gateway.pack(side=ctk.LEFT)
+
+        # ─── 主体分栏 ──────────────────────────────────────────────────────────
+        main_container = ctk.CTkFrame(self, fg_color="transparent")
+        main_container.pack(fill=ctk.BOTH, expand=True, padx=18, pady=14)
+
+        # ─── 左侧：模型助手列表栏 (暗调卡片) ───────────────────────────────────
+        left_card = ctk.CTkFrame(
+            main_container,
+            width=345,
+            corner_radius=14,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_width=1,
+            border_color=("#E2E8F0", "#1E2A44")
+        )
+        left_card.pack(side=ctk.LEFT, fill=ctk.Y, padx=(0, 14))
+        left_card.pack_propagate(False)
+
+        # 左侧顶部标题栏
+        left_header = ctk.CTkFrame(left_card, fg_color="transparent")
+        left_header.pack(fill=ctk.X, padx=14, pady=(14, 4))
+
+        ctk.CTkLabel(
+            left_header,
+            text="已接入模型助手",
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            text_color=("#0F172A", "#F8FAFC")
+        ).pack(side=ctk.LEFT)
+
+        btn_add = ctk.CTkButton(
+            left_header,
+            text="➕ 新建",
+            width=62,
+            height=26,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#3B82F6",
+            hover_color="#2563EB",
+            corner_radius=6,
+            command=self._clear_form
+        )
+        btn_add.pack(side=ctk.RIGHT)
+
+        # 多选快捷控制条 (全选 / 清空 / 计数)
+        select_bar = ctk.CTkFrame(left_card, fg_color="transparent")
+        select_bar.pack(fill=ctk.X, padx=14, pady=(0, 8))
+
+        self.lbl_select_count = ctk.CTkLabel(
+            select_bar,
+            text="待注入: 0 个",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color=("#4F46E5", "#818CF8")
+        )
+        self.lbl_select_count.pack(side=ctk.LEFT)
+
+        btn_unselect_all = ctk.CTkButton(
+            select_bar,
+            text="清空",
+            width=44,
+            height=22,
+            font=ctk.CTkFont(size=10),
+            fg_color=("#F1F5F9", "#1E293B"),
+            hover_color=("#E2E8F0", "#334155"),
+            text_color=("#475569", "#94A3B8"),
+            corner_radius=4,
+            command=self._unselect_all_injection
+        )
+        btn_unselect_all.pack(side=ctk.RIGHT, padx=(4, 0))
+
+        btn_select_all = ctk.CTkButton(
+            select_bar,
+            text="全选",
+            width=44,
+            height=22,
+            font=ctk.CTkFont(size=10),
+            fg_color=("#F1F5F9", "#1E293B"),
+            hover_color=("#E2E8F0", "#334155"),
+            text_color=("#475569", "#94A3B8"),
+            corner_radius=4,
+            command=self._select_all_injection
+        )
+        btn_select_all.pack(side=ctk.RIGHT)
+
+        # 左侧可滚动卡片列表容器
+        self.provider_scroll = ctk.CTkScrollableFrame(
+            left_card,
+            corner_radius=10,
+            fg_color=("#F8FAFC", "#0C1322"),
+            border_width=1,
+            border_color=("#F1F5F9", "#172238")
+        )
+        self.provider_scroll.pack(fill=ctk.BOTH, expand=True, padx=10, pady=4)
+
+        # 左侧底部操作栏（高亮核心按钮）
+        left_footer = ctk.CTkFrame(left_card, fg_color="transparent")
+        left_footer.pack(fill=ctk.X, padx=12, pady=(10, 14))
+
+        self.btn_copy_prompt_left = ctk.CTkButton(
+            left_footer,
+            text="✨ 一键复制 Agent 注入提示词",
+            height=38,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#6366F1",
+            hover_color="#4F46E5",
+            corner_radius=8,
+            command=self._copy_injection_prompt
+        )
+        self.btn_copy_prompt_left.pack(fill=ctk.X, pady=(0, 6))
+
+        self.btn_delete = ctk.CTkButton(
+            left_footer,
+            text="🗑️ 移除当前编辑模型",
+            height=28,
+            font=ctk.CTkFont(size=11),
+            fg_color=("#F1F5F9", "#1E293B"),
+            hover_color="#EF4444",
+            text_color=("#64748B", "#94A3B8"),
+            corner_radius=6,
+            command=self._delete_selected
+        )
+        self.btn_delete.pack(fill=ctk.X)
+
+        # ─── 右侧：配置卡片与导出 Tab ──────────────────────────────────────────
+        right_container = ctk.CTkFrame(main_container, fg_color="transparent")
+        right_container.pack(side=ctk.RIGHT, fill=ctk.BOTH, expand=True)
+
+        # 卡片 1：模型配置与连通测试
+        config_card = ctk.CTkFrame(
+            right_container,
+            corner_radius=14,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_width=1,
+            border_color=("#E2E8F0", "#1E2A44")
+        )
+        config_card.pack(fill=ctk.X, pady=(0, 12))
+
+        # 快速预设模板选择条
+        preset_bar = ctk.CTkFrame(config_card, fg_color="transparent")
+        preset_bar.pack(fill=ctk.X, padx=18, pady=(14, 8))
+
+        ctk.CTkLabel(
+            preset_bar,
+            text="⚡ 快速载入预设:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=("#4F46E5", "#818CF8")
+        ).pack(side=ctk.LEFT, padx=(0, 8))
+
+        self.cmb_preset = ctk.CTkOptionMenu(
+            preset_bar,
+            values=list(PRESETS.keys()),
+            command=self._on_preset_selected,
+            font=ctk.CTkFont(size=12),
+            height=32,
+            fg_color=("#F1F5F9", "#1A253C"),
+            button_color=("#E2E8F0", "#243352"),
+            button_hover_color=("#CBD5E1", "#33476E"),
+            text_color=("#0F172A", "#F8FAFC"),
+            corner_radius=8,
+            dynamic_resizing=False
+        )
+        self.cmb_preset.set("点此选择官方主流预设（DeepSeek / Grok / Gemini / 火山引擎）...")
+        self.cmb_preset.pack(side=ctk.LEFT, fill=ctk.X, expand=True)
+
+        # 表单字段网格 (对齐优化)
+        form_grid = ctk.CTkFrame(config_card, fg_color="transparent")
+        form_grid.pack(fill=ctk.X, padx=18, pady=4)
+        form_grid.columnconfigure(1, weight=1)
+        form_grid.columnconfigure(3, weight=1)
+
+        # 行 1: 厂商标识 & 显示名称
+        ctk.CTkLabel(form_grid, text="厂商标识:", font=ctk.CTkFont(size=12), text_color=("#475569", "#94A3B8")).grid(row=0, column=0, sticky="w", pady=6)
+        self.ent_provider = ctk.CTkEntry(
+            form_grid,
+            placeholder_text="如 deepseek 或 grok",
+            height=34,
+            corner_radius=8,
+            fg_color=("#F8FAFC", "#0C1322"),
+            border_color=("#E2E8F0", "#22314E")
+        )
+        self.ent_provider.grid(row=0, column=1, sticky="ew", padx=(8, 16), pady=6)
+
+        ctk.CTkLabel(form_grid, text="显示名称:", font=ctk.CTkFont(size=12), text_color=("#475569", "#94A3B8")).grid(row=0, column=2, sticky="w", pady=6)
+        self.ent_name = ctk.CTkEntry(
+            form_grid,
+            placeholder_text="如 DeepSeek (深度求索)",
+            height=34,
+            corner_radius=8,
+            fg_color=("#F8FAFC", "#0C1322"),
+            border_color=("#E2E8F0", "#22314E")
+        )
+        self.ent_name.grid(row=0, column=3, sticky="ew", padx=(8, 0), pady=6)
+
+        # 行 2: Base URL
+        ctk.CTkLabel(form_grid, text="API Base URL:", font=ctk.CTkFont(size=12), text_color=("#475569", "#94A3B8")).grid(row=1, column=0, sticky="w", pady=6)
+        self.ent_url = ctk.CTkEntry(
+            form_grid,
+            placeholder_text="https://api.deepseek.com",
+            height=34,
+            corner_radius=8,
+            fg_color=("#F8FAFC", "#0C1322"),
+            border_color=("#E2E8F0", "#22314E")
+        )
+        self.ent_url.grid(row=1, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=6)
+
+        # 行 3: 接口协议 & 模型名称
+        ctk.CTkLabel(form_grid, text="接口协议:", font=ctk.CTkFont(size=12), text_color=("#475569", "#94A3B8")).grid(row=2, column=0, sticky="w", pady=6)
+        self.cmb_protocol = ctk.CTkOptionMenu(
+            form_grid,
+            values=["openai_chat", "anthropic", "gemini"],
+            height=34,
+            font=ctk.CTkFont(size=12),
+            fg_color=("#F8FAFC", "#0C1322"),
+            button_color=("#E2E8F0", "#22314E"),
+            button_hover_color=("#CBD5E1", "#33476E"),
+            text_color=("#0F172A", "#F8FAFC"),
+            corner_radius=8
+        )
+        self.cmb_protocol.grid(row=2, column=1, sticky="ew", padx=(8, 16), pady=6)
+
+        ctk.CTkLabel(form_grid, text="模型名称:", font=ctk.CTkFont(size=12), text_color=("#475569", "#94A3B8")).grid(row=2, column=2, sticky="w", pady=6)
+        model_box = ctk.CTkFrame(form_grid, fg_color="transparent")
+        model_box.grid(row=2, column=3, sticky="ew", padx=(8, 0), pady=6)
+
+        self.cmb_model = ctk.CTkComboBox(
+            model_box,
+            values=["deepseek-reasoner", "deepseek-chat"],
+            height=34,
+            corner_radius=8,
+            fg_color=("#F8FAFC", "#0C1322"),
+            border_color=("#E2E8F0", "#22314E")
+        )
+        self.cmb_model.pack(side=ctk.LEFT, fill=ctk.X, expand=True)
+
+        self.btn_fetch = ctk.CTkButton(
+            model_box,
+            text="🔄 拉取",
+            width=64,
+            height=34,
+            fg_color=("#F1F5F9", "#1E293B"),
+            hover_color=("#E2E8F0", "#334155"),
+            text_color=("#334155", "#E2E8F0"),
+            corner_radius=8,
+            command=self._fetch_remote_models_threaded
+        )
+        self.btn_fetch.pack(side=ctk.RIGHT, padx=(6, 0))
+
+        # 行 4: API Key
+        ctk.CTkLabel(form_grid, text="API Key (密钥):", font=ctk.CTkFont(size=12), text_color=("#475569", "#94A3B8")).grid(row=3, column=0, sticky="w", pady=6)
+        key_box = ctk.CTkFrame(form_grid, fg_color="transparent")
+        key_box.grid(row=3, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=6)
+
+        self.ent_key = ctk.CTkEntry(
+            key_box,
+            show="*",
+            placeholder_text="填入对应平台的 API Key",
+            height=34,
+            corner_radius=8,
+            fg_color=("#F8FAFC", "#0C1322"),
+            border_color=("#E2E8F0", "#22314E")
+        )
+        self.ent_key.pack(side=ctk.LEFT, fill=ctk.X, expand=True)
+
+        self.btn_toggle_key = ctk.CTkButton(
+            key_box,
+            text="👁️ 显示",
+            width=65,
+            height=34,
+            fg_color=("#F1F5F9", "#1E293B"),
+            hover_color=("#E2E8F0", "#334155"),
+            text_color=("#334155", "#E2E8F0"),
+            corner_radius=8,
+            command=self._toggle_key_visibility
+        )
+        self.btn_toggle_key.pack(side=ctk.RIGHT, padx=(6, 0))
+
+        # 操作控制与连通测试状态栏
+        action_bar = ctk.CTkFrame(config_card, fg_color="transparent")
+        action_bar.pack(fill=ctk.X, padx=18, pady=(12, 16))
+
+        self.btn_save = ctk.CTkButton(
+            action_bar,
+            text="💾 保存配置",
+            width=105,
+            height=36,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=("#475569", "#334155"),
+            hover_color=("#334155", "#475569"),
+            corner_radius=8,
+            command=self._save_form
+        )
+        self.btn_save.pack(side=ctk.LEFT, padx=(0, 10))
+
+        self.btn_test = ctk.CTkButton(
+            action_bar,
+            text="⚡ 开始连通性与生成测试",
+            width=200,
+            height=36,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#10B981",
+            hover_color="#059669",
+            corner_radius=8,
+            command=self._test_model_threaded
+        )
+        self.btn_test.pack(side=ctk.LEFT)
+
+        self.lbl_test_status = ctk.CTkLabel(
+            action_bar,
+            text="● 就绪，点击绿色按钮可立即测试模型真实响应",
+            font=ctk.CTkFont(size=11),
+            text_color=("#64748B", "#94A3B8")
+        )
+        self.lbl_test_status.pack(side=ctk.LEFT, padx=16)
+
+        # 卡片 2：现代化导出 Tab 卡片
+        export_card = ctk.CTkFrame(
+            right_container,
+            corner_radius=14,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_width=1,
+            border_color=("#E2E8F0", "#1E2A44")
+        )
+        export_card.pack(fill=ctk.BOTH, expand=True)
+
+        self.tabview = ctk.CTkTabview(
+            export_card,
+            corner_radius=10,
+            segmented_button_fg_color=("#F1F5F9", "#0C1322"),
+            segmented_button_selected_color="#6366F1",
+            segmented_button_selected_hover_color="#4F46E5"
+        )
+        self.tabview.pack(fill=ctk.BOTH, expand=True, padx=14, pady=(6, 12))
+
+        # Tab 1: Agent 注入提示词
+        tab_prompt = self.tabview.add("🤖 Agent 注入提示词 (含子代理分工)")
+        prompt_top_bar = ctk.CTkFrame(tab_prompt, fg_color="transparent")
+        prompt_top_bar.pack(fill=ctk.X, pady=(0, 6))
+
+        ctk.CTkLabel(
+            prompt_top_bar,
+            text="💡 提示：将下方内容发给 Agent，Agent 自动落盘 .agent_models/ 配置并永久绑定子代理",
+            font=ctk.CTkFont(size=11),
+            text_color=("#6366F1", "#A5B4FC")
+        ).pack(side=ctk.LEFT)
+
+        btn_copy_p = ctk.CTkButton(
+            prompt_top_bar,
+            text="📋 一键复制提示词",
+            width=135,
+            height=30,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#6366F1",
+            hover_color="#4F46E5",
+            corner_radius=6,
+            command=self._copy_injection_prompt
+        )
+        btn_copy_p.pack(side=ctk.RIGHT)
+
+        self.txt_prompt = ctk.CTkTextbox(
+            tab_prompt,
+            font=ctk.CTkFont(family="Consolas", size=11),
+            fg_color=("#F8FAFC", "#0A0E17"),
+            text_color=("#0F172A", "#E2E8F0"),
+            corner_radius=8,
+            border_width=1,
+            border_color=("#E2E8F0", "#19243C"),
+            wrap="word"
+        )
+        self.txt_prompt.pack(fill=ctk.BOTH, expand=True)
+
+        # Tab 2: 独立 Python 代码
+        tab_code = self.tabview.add("🐍 独立 Python 调用文件")
+        code_top_bar = ctk.CTkFrame(tab_code, fg_color="transparent")
+        code_top_bar.pack(fill=ctk.X, pady=(0, 6))
+
+        ctk.CTkLabel(
+            code_top_bar,
+            text="💡 提示：完全自包含、免环境依赖的单文件调用脚本（含数据库批处理示例）",
+            font=ctk.CTkFont(size=11),
+            text_color=("#64748B", "#94A3B8")
+        ).pack(side=ctk.LEFT)
+
+        btn_copy_c = ctk.CTkButton(
+            code_top_bar,
+            text="📋 一键复制代码",
+            width=125,
+            height=30,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
+            corner_radius=6,
+            command=lambda: self._copy_text(self.txt_code.get("1.0", "end-1c"), "代码已复制")
+        )
+        btn_copy_c.pack(side=ctk.RIGHT)
+
+        self.txt_code = ctk.CTkTextbox(
+            tab_code,
+            font=ctk.CTkFont(family="Consolas", size=11),
+            fg_color=("#F8FAFC", "#0A0E17"),
+            text_color=("#0F172A", "#E2E8F0"),
+            corner_radius=8,
+            border_width=1,
+            border_color=("#E2E8F0", "#19243C"),
+            wrap="none"
+        )
+        self.txt_code.pack(fill=ctk.BOTH, expand=True)
+
+        # Tab 3: MCP 插件配置
+        tab_mcp = self.tabview.add("🧩 MCP 插件配置")
+        mcp_top_bar = ctk.CTkFrame(tab_mcp, fg_color="transparent")
+        mcp_top_bar.pack(fill=ctk.X, pady=(0, 6))
+
+        ctk.CTkLabel(
+            mcp_top_bar,
+            text="💡 提示：供 Cursor / Antigravity / Windsurf 原生 MCP 服务器挂载的配置代码",
+            font=ctk.CTkFont(size=11),
+            text_color=("#64748B", "#94A3B8")
+        ).pack(side=ctk.LEFT)
+
+        btn_copy_m = ctk.CTkButton(
+            mcp_top_bar,
+            text="📋 一键复制 MCP",
+            width=125,
+            height=30,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#0D9488",
+            hover_color="#0F766E",
+            corner_radius=6,
+            command=lambda: self._copy_text(self.txt_mcp.get("1.0", "end-1c"), "MCP 配置已复制")
+        )
+        btn_copy_m.pack(side=ctk.RIGHT)
+
+        self.txt_mcp = ctk.CTkTextbox(
+            tab_mcp,
+            font=ctk.CTkFont(family="Consolas", size=11),
+            fg_color=("#F8FAFC", "#0A0E17"),
+            text_color=("#0F172A", "#E2E8F0"),
+            corner_radius=8,
+            border_width=1,
+            border_color=("#E2E8F0", "#19243C"),
+            wrap="none"
+        )
+        self.txt_mcp.pack(fill=ctk.BOTH, expand=True)
+
+        # ─── 底部状态栏 ────────────────────────────────────────────────────────
+        self.status_bar = ctk.CTkLabel(
+            self,
+            text="● 系统就绪 · 支持多模型组合勾选注入、Subagents 子代理自动化挂载与自执行配置生成",
+            height=26,
+            font=ctk.CTkFont(size=11),
+            text_color=("#64748B", "#64748B"),
+            fg_color=("#E2E8F0", "#0F172A"),
+            anchor="w",
+            padx=18
+        )
+        self.status_bar.pack(side=ctk.BOTTOM, fill=ctk.X)
+
+    # ─── 交互与业务逻辑 ───────────────────────────────────────────────────────
+
+    def _on_theme_changed(self, choice):
+        mode_map = {"深色": "Dark", "浅色": "Light", "系统": "System"}
+        ctk.set_appearance_mode(mode_map.get(choice, "Dark"))
+
+    def _toggle_key_visibility(self):
+        if self.ent_key.cget("show") == "*":
+            self.ent_key.configure(show="")
+            self.btn_toggle_key.configure(text="🙈 隐藏")
+        else:
+            self.ent_key.configure(show="*")
+            self.btn_toggle_key.configure(text="👁️ 显示")
+
+    def _on_preset_selected(self, choice):
+        if choice in PRESETS:
+            p_data = PRESETS[choice]
+            self.ent_provider.delete(0, "end")
+            self.ent_provider.insert(0, p_data["provider"])
+
+            self.ent_name.delete(0, "end")
+            self.ent_name.insert(0, p_data["name"])
+
+            self.ent_url.delete(0, "end")
+            self.ent_url.insert(0, p_data["url"])
+
+            self.cmb_protocol.set(p_data["protocol"])
+            self.cmb_model.set(p_data["model"])
+
+            if "models" in p_data:
+                self.cmb_model.configure(values=p_data["models"])
+
+            if p_data.get("key"):
+                self.ent_key.delete(0, "end")
+                self.ent_key.insert(0, p_data["key"])
+
+            self.lbl_test_status.configure(
+                text=f"● 已载入预设: {p_data.get('hint','')[:40]}",
+                text_color=("#4F46E5", "#818CF8")
+            )
+            self._update_all_exports(
+                p_data["provider"], p_data["name"], p_data["model"],
+                p_data["url"], p_data.get("key", ""), p_data["protocol"]
+            )
+
+    # ─── 多模型勾选操作 ────────────────────────────────────────────────────────
+
+    def _select_all_injection(self):
+        providers = self.current_state.get("providers", {})
+        self.selected_for_injection = set(providers.keys())
+        for pid, var in self.check_vars.items():
+            var.set(True)
+        self._update_selection_displays()
+
+    def _unselect_all_injection(self):
+        self.selected_for_injection.clear()
+        for pid, var in self.check_vars.items():
+            var.set(False)
+        self._update_selection_displays()
+
+    def _on_checkbox_toggled(self, p_id):
+        var = self.check_vars.get(p_id)
+        if var and var.get():
+            self.selected_for_injection.add(p_id)
+        else:
+            self.selected_for_injection.discard(p_id)
+        self._update_selection_displays()
+
+    def _update_selection_displays(self):
+        count = len(self.selected_for_injection)
+        self.lbl_select_count.configure(text=f"待注入: {count} 个")
+        self.btn_copy_prompt_left.configure(text=f"✨ 复制注入提示词 ({count}个)")
+        self._refresh_prompt_display()
+
+    # ─── 列表刷新与卡片渲染 ───────────────────────────────────────────────────
+
+    def _refresh_model_list(self):
+        for widget in self.provider_scroll.winfo_children():
+            widget.destroy()
+
+        self.current_state = load_state_dict()
+        providers = self.current_state.get("providers", {})
+
+        self.selected_for_injection = {pid for pid in self.selected_for_injection if pid in providers}
+        if not self.selected_for_injection and providers:
+            self.selected_for_injection = set(providers.keys())
+
+        if not providers:
+            lbl_empty = ctk.CTkLabel(
+                self.provider_scroll,
+                text="暂无配置模型\n请点击右上角【➕ 新建】",
+                font=ctk.CTkFont(size=12),
+                text_color="gray50"
+            )
+            lbl_empty.pack(pady=40)
+            self._update_selection_displays()
+            return
+
+        for p_id, p_cfg in providers.items():
+            name = p_cfg.get("name", p_id)
+            model = p_cfg.get("model", "未设定")
+            proto = p_cfg.get("protocol", "openai_chat")
+            is_selected = (p_id == self.selected_provider_id)
+            role_meta = detect_model_role(p_id, name, model)
+
+            # 卡片背景与边框：选中时带鲜艳的高亮轮廓
+            card = ctk.CTkFrame(
+                self.provider_scroll,
+                corner_radius=10,
+                fg_color=("#EDE9FE" if is_selected else ("#FFFFFF", "#141E33")),
+                border_width=1.5 if is_selected else 1,
+                border_color=("#6366F1" if is_selected else ("#E2E8F0", "#1C2945")),
+                cursor="hand2"
+            )
+            card.pack(fill=ctk.X, pady=4, padx=2)
+
+            # 点击切换右侧表单查看与编辑
+            card.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
+
+            # 卡片头部行：复选框 + 模型名称 + 角色标签
+            top_line = ctk.CTkFrame(card, fg_color="transparent")
+            top_line.pack(fill=ctk.X, padx=10, pady=(8, 2))
+            top_line.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
+
+            chk_var = ctk.BooleanVar(value=(p_id in self.selected_for_injection))
+            self.check_vars[p_id] = chk_var
+
+            chk = ctk.CTkCheckBox(
+                top_line,
+                text="",
+                width=20,
+                checkbox_width=18,
+                checkbox_height=18,
+                corner_radius=5,
+                border_width=2,
+                fg_color="#6366F1",
+                hover_color="#4F46E5",
+                variable=chk_var,
+                command=lambda pid=p_id: self._on_checkbox_toggled(pid)
+            )
+            chk.pack(side=ctk.LEFT, padx=(0, 6))
+
+            title_lbl = ctk.CTkLabel(
+                top_line,
+                text=name,
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color=("#0F172A", "#F8FAFC"),
+                anchor="w"
+            )
+            title_lbl.pack(side=ctk.LEFT, fill=ctk.X, expand=True)
+            title_lbl.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
+
+            # 角色标签徽章
+            role_badge = ctk.CTkLabel(
+                top_line,
+                text=role_meta["tag"],
+                font=ctk.CTkFont(size=10, weight="bold"),
+                fg_color=role_meta["tag_color"],
+                text_color=role_meta["tag_text_color"],
+                corner_radius=5,
+                padx=6,
+                pady=2
+            )
+            role_badge.pack(side=ctk.RIGHT)
+            role_badge.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
+
+            # 卡片次级行：模型标识 + 协议徽章
+            sub_box = ctk.CTkFrame(card, fg_color="transparent")
+            sub_box.pack(fill=ctk.X, padx=10, pady=(2, 8))
+            sub_box.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
+
+            model_lbl = ctk.CTkLabel(
+                sub_box,
+                text=f"模型: {model}",
+                font=ctk.CTkFont(family="Consolas", size=10),
+                text_color=("#64748B", "#94A3B8"),
+                anchor="w"
+            )
+            model_lbl.pack(side=ctk.LEFT)
+            model_lbl.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
+
+            proto_text = "Claude" if proto == "anthropic" else ("Gemini" if proto == "gemini" else "OpenAI")
+            proto_badge = ctk.CTkLabel(
+                sub_box,
+                text=proto_text,
+                font=ctk.CTkFont(size=9, weight="bold"),
+                fg_color=("#DBEAFE", "#172554") if proto == "anthropic" else ("#DCFCE7", "#052E16"),
+                text_color=("#1D4ED8", "#93C5FD") if proto == "anthropic" else ("#15803D", "#86EFAC"),
+                corner_radius=4,
+                padx=6,
+                pady=1
+            )
+            proto_badge.pack(side=ctk.RIGHT)
+            proto_badge.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
+
+        # 默认选中第一个进行编辑
+        if not self.selected_provider_id and providers:
+            first_id = list(providers.keys())[0]
+            self._select_provider(first_id)
+        else:
+            self._update_selection_displays()
+
+    def _select_provider(self, p_id):
+        self.selected_provider_id = p_id
+        providers = self.current_state.get("providers", {})
+        cfg = providers.get(p_id, {})
+
+        self.ent_provider.delete(0, "end")
+        self.ent_provider.insert(0, p_id)
+
+        self.ent_name.delete(0, "end")
+        self.ent_name.insert(0, cfg.get("name", p_id))
+
+        self.ent_url.delete(0, "end")
+        self.ent_url.insert(0, cfg.get("base_url", ""))
+
+        self.cmb_protocol.set(cfg.get("protocol", "openai_chat"))
+
+        self.ent_key.delete(0, "end")
+        self.ent_key.insert(0, cfg.get("api_key", ""))
+
+        current_model = cfg.get("model", "")
+        self.cmb_model.set(current_model)
+        self.cmb_model.configure(values=[current_model] if current_model else [])
+
+        self.lbl_test_status.configure(
+            text="● 已就绪，可点击绿色按钮测试连通性",
+            text_color=("#64748B", "#94A3B8")
+        )
+
+        self._update_all_exports(
+            p_id, cfg.get("name", p_id), current_model,
+            cfg.get("base_url", ""), cfg.get("api_key", ""), cfg.get("protocol", "openai_chat")
+        )
+        self._highlight_selected_card()
+
+    def _highlight_selected_card(self):
+        providers = self.current_state.get("providers", {})
+        widgets = self.provider_scroll.winfo_children()
+        for idx, (p_id, _) in enumerate(providers.items()):
+            if idx < len(widgets):
+                card = widgets[idx]
+                if p_id == self.selected_provider_id:
+                    card.configure(
+                        fg_color=("#EDE9FE", "#1E2945"),
+                        border_width=1.5,
+                        border_color=("#6366F1", "#6366F1")
+                    )
+                else:
+                    card.configure(
+                        fg_color=("#FFFFFF", "#141E33"),
+                        border_width=1,
+                        border_color=("#E2E8F0", "#1C2945")
+                    )
+
+    def _clear_form(self):
+        self.selected_provider_id = None
+        self.ent_provider.delete(0, "end")
+        self.ent_provider.insert(0, "custom-model")
+
+        self.ent_name.delete(0, "end")
+        self.ent_name.insert(0, "新模型助手")
+
+        self.ent_url.delete(0, "end")
+        self.ent_url.insert(0, "https://api.deepseek.com")
+
+        self.cmb_protocol.set("openai_chat")
+        self.ent_key.delete(0, "end")
+        self.cmb_model.set("deepseek-reasoner")
+        self.lbl_test_status.configure(text="● 已清空表单，请填写新配置或选择上方快速预设", text_color=("#64748B", "#94A3B8"))
+        self._highlight_selected_card()
+
+    def _save_form(self):
+        p_id = self.ent_provider.get().strip().lower()
+        if not p_id:
+            messagebox.showerror("错误", "厂商标识符不能为空！")
+            return
+
+        name = self.ent_name.get().strip() or p_id
+        url = self.ent_url.get().strip().rstrip("/")
+        protocol = self.cmb_protocol.get().strip() or "openai_chat"
+        key = self.ent_key.get().strip()
+        model = self.cmb_model.get().strip()
+
+        if not url or not model:
+            messagebox.showerror("错误", "Base URL 与模型名称均不能为空！")
+            return
+
+        cfg = {
+            "name": name,
+            "base_url": url,
+            "model": model,
+            "protocol": protocol,
+            "enabled": True,
+            "api_key": key,
+            "description": f"{name} 助手模型"
+        }
+
+        self.current_state.setdefault("providers", {})[p_id] = cfg
+        if not self.current_state.get("default_provider"):
+            self.current_state["default_provider"] = p_id
+
+        self.selected_for_injection.add(p_id)
+
+        save_state_dict(self.current_state)
+        self.selected_provider_id = p_id
+        self._refresh_model_list()
+        self._update_all_exports(p_id, name, model, url, key, protocol)
+        messagebox.showinfo("成功", f"🎉 配置 [{name}] 已成功保存！")
+
+    def _delete_selected(self):
+        if not self.selected_provider_id:
+            return
+        p_id = self.selected_provider_id
+        if messagebox.askyesno("确认删除", f"确定要移除模型助手 [{p_id}] 吗？"):
+            if p_id in self.current_state.get("providers", {}):
+                del self.current_state["providers"][p_id]
+                save_state_dict(self.current_state)
+            self.selected_for_injection.discard(p_id)
+            self.selected_provider_id = None
+            self._refresh_model_list()
+
+    def _fetch_remote_models_threaded(self):
+        threading.Thread(target=self._fetch_remote_models, daemon=True).start()
+
+    def _fetch_remote_models(self):
+        url = self.ent_url.get().strip().rstrip("/")
+        key = self.ent_key.get().strip()
+
+        if not url:
+            self.after(0, lambda: messagebox.showwarning("提示", "请先输入 Base URL！"))
+            return
+
+        self.after(0, lambda: self.btn_fetch.configure(text="⏳...", state="disabled"))
+        try:
+            import requests
+            req_url = f"{url}/models" if not url.endswith("/models") else url
+            headers = {}
+            if key:
+                headers["Authorization"] = f"Bearer {key}"
+                headers["x-api-key"] = key
+            resp = requests.get(req_url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                models = [m.get("id") for m in data.get("data", []) if "id" in m]
+                if models:
+                    self.after(0, lambda: self.cmb_model.configure(values=models))
+                    self.after(0, lambda: messagebox.showinfo("成功", f"拉取到 {len(models)} 个可用模型！"))
+                else:
+                    self.after(0, lambda: messagebox.showinfo("提示", "服务端未返回公共列表，可直接输入模型名称。"))
+            else:
+                self.after(0, lambda: messagebox.showinfo("提示", f"端点返回 HTTP {resp.status_code}，可直接输入模型名称。"))
+        except Exception as e:
+            self.after(0, lambda: messagebox.showerror("拉取异常", f"连接失败: {str(e)}"))
+        finally:
+            self.after(0, lambda: self.btn_fetch.configure(text="🔄 拉取", state="normal"))
+
+    # ─── 连通性测试 ───────────────────────────────────────────────────────────
+
+    def _test_model_threaded(self):
+        if self.is_testing:
+            return
+        self.is_testing = True
+        self.btn_test.configure(state="disabled", fg_color="#64748B")
+        self.lbl_test_status.configure(text="⏳ 正在发送生成测试请求...", text_color=("#4F46E5", "#818CF8"))
+        threading.Thread(target=self._test_model, daemon=True).start()
+
+    def _test_model(self):
+        p_id = self.ent_provider.get().strip().lower()
+        name = self.ent_name.get().strip() or p_id
+        url = self.ent_url.get().strip().rstrip("/")
+        protocol = self.cmb_protocol.get().strip() or "openai_chat"
+        key = self.ent_key.get().strip()
+        model = self.cmb_model.get().strip()
+
+        if not url or not model:
+            self.after(0, lambda: self._on_test_failed("Base URL 和模型名称不能为空！"))
+            return
+
+        start_t = time.monotonic()
+        try:
+            temp_cfg = {
+                "name": name,
+                "base_url": url,
+                "protocol": protocol,
+                "model": model,
+                "api_key": key,
+                "enabled": True
+            }
+            self.current_state.setdefault("providers", {})[p_id] = temp_cfg
+            save_state_dict(self.current_state)
+
+            res = delegate_task(
+                task="请回复'连接成功'这四个字，不要其他内容。",
+                provider=p_id,
+                model=model,
+                api_key=key,
+                timeout=30
+            )
+            elapsed = res.get("elapsed_ms", int((time.monotonic() - start_t) * 1000))
+
+            if res.get("success"):
+                reply = res.get("result", "").strip()
+                self.after(0, lambda: self._on_test_success(p_id, name, model, elapsed, reply, url, key, protocol))
+            else:
+                self.after(0, lambda: self._on_test_failed(res.get("error", "未知错误")))
+        except Exception as e:
+            self.after(0, lambda: self._on_test_failed(str(e)))
+        finally:
+            self.is_testing = False
+            self.after(0, lambda: self.btn_test.configure(state="normal", fg_color="#10B981"))
+
+    def _on_test_success(self, p_id, name, model, elapsed, reply, url, key, protocol):
+        self.lbl_test_status.configure(
+            text=f"✅ 测试成功！耗时 {elapsed}ms | 响应: {reply[:25]}",
+            text_color="#10B981"
+        )
+        self._update_all_exports(p_id, name, model, url, key, protocol)
+        self._refresh_model_list()
+        messagebox.showinfo(
+            "测试通过",
+            f"🎉 模型 [{name} / {model}] 连通与生成完全正常！\n\n"
+            f"协议: {protocol}\n"
+            f"耗时: {elapsed}ms\n"
+            f"回复: {reply}\n\n"
+            f"下方已实时更新多模型注入提示词与通用调用代码！"
+        )
+
+    def _on_test_failed(self, err_msg):
+        self.lbl_test_status.configure(text=f"❌ 连接失败: {err_msg[:50]}", text_color="#EF4444")
+        messagebox.showerror("测试失败", f"未能连通模型端点:\n\n{err_msg}\n\n请检查 Base URL、API Key 与模型名称是否匹配。")
+
+    # ─── 导出与提示词生成引擎 ─────────────────────────────────────────────────
+
+    def _update_all_exports(self, p_id=None, name=None, model=None, url="", key="", protocol="openai_chat"):
+        self._refresh_prompt_display()
+        self._update_code_display(p_id, name, model, url, key, protocol)
+        self._update_mcp_display()
+
+    def _generate_injection_prompt(self) -> str:
+        providers = self.current_state.get("providers", {})
+        target_ids = [pid for pid in providers if pid in self.selected_for_injection]
+        if not target_ids:
+            if self.selected_provider_id and self.selected_provider_id in providers:
+                target_ids = [self.selected_provider_id]
+            else:
+                target_ids = list(providers.keys())
+
+        if not target_ids:
+            return "暂未勾选或配置任何外部模型，请在左侧添加并勾选模型。"
+
+        models_info = []
+        subagent_roles = []
+
+        for pid in target_ids:
+            cfg = providers.get(pid, {})
+            name = cfg.get("name", pid)
+            model = cfg.get("model", "default")
+            proto = cfg.get("protocol", "openai_chat")
+            url = cfg.get("base_url", "")
+            key = cfg.get("api_key", "")
+            role_meta = detect_model_role(pid, name, model)
+
+            models_info.append({
+                "id": pid,
+                "name": name,
+                "model": model,
+                "protocol": proto,
+                "base_url": url,
+                "api_key": key,
+                "role_id": role_meta["role_id"],
+                "role_title": role_meta["role_title"],
+                "specialty": role_meta["specialty"],
+                "tag": role_meta["tag"]
+            })
+
+            subagent_roles.append(
+                f"- **`{role_meta['role_id']}`** ({role_meta['role_title']})：\n"
+                f"  - 挂载模型: `{model}` (厂商: {name}, 协议: `{proto}`)\n"
+                f"  - 专长职责: {role_meta['specialty']}\n"
+                f"  - 委派调用: `python .agent_models/delegator.py --model {pid} --task \"<子任务提示词>\"`"
+            )
+
+        table_lines = [
+            f"| `{m['id']}` | **{m['name']}** | `{m['model']}` | `{m['protocol']}` | {m['tag']} |"
+            for m in models_info
+        ]
+        table_str = "\n".join(table_lines)
+        subagents_str = "\n".join(subagent_roles)
+
+        clean_config = {
+            "version": "1.0",
+            "default_model": target_ids[0] if target_ids else "",
+            "models": {
+                m["id"]: {
+                    "name": m["name"],
+                    "model": m["model"],
+                    "protocol": m["protocol"],
+                    "base_url": m["base_url"],
+                    "api_key": m["api_key"],
+                    "role_id": m["role_id"],
+                    "role_title": m["role_title"],
+                    "specialty": m["specialty"]
+                }
+                for m in models_info
+            }
+        }
+        config_json_str = json.dumps(clean_config, ensure_ascii=False, indent=2)
+
+        prompt = f"""你现在需要为当前工作区接入多模型协同与子代理（Subagents）调度能力。
+请根据以下选定的外部模型配置与角色规范，**在当前工作区自主完成初始化配置与工具落地**：
+
+---
+
+### 一、已选定的外部模型清单
+
+| 模型标识 | 显示名称 | 具体模型 | 协议 | 专长定位 |
+| :--- | :--- | :--- | :--- | :--- |
+{table_str}
+
+---
+
+### 二、子代理（Subagent）角色规范与委派分工
+
+{subagents_str}
+
+---
+
+### 三、请你在当前工作区执行以下三步初始化（自主完成，无需用户额外干预）：
+
+#### 第一步：创建配置目录与模型注册表
+在当前工程根目录下创建 `.agent_models/config.json`，并将以下完整配置写入该文件：
+```json
+{config_json_str}
+```
+
+#### 第二步：创建自包含免依赖的委派引擎 `.agent_models/delegator.py`
+在当前工程根目录下创建 Python 脚本 `.agent_models/delegator.py`，满足以下要求：
+- 支持命令行调用：`python .agent_models/delegator.py --model <模型标识> --task "<任务提示词>"`，输出模型回复内容。
+- 当不传 `--model` 时，默认使用 `default_model`。
+- 支持 Python 模块直接导入：`from .agent_models.delegator import delegate_task`
+- 脚本自动读取同目录下的 `config.json`，自适配 `openai_chat`、`anthropic`、`gemini` 协议。
+- 仅依赖 Python 内置库 `urllib.request` 或常规 `requests`，具备超时重试与友好的异常处理。
+
+#### 第三步：建立工作区规则与子代理永久生效绑定
+1. 根据当前开发工具类型（如 Antigravity IDE、Cursor、Claude Code 等），在工作区配置中登记上述子代理体系（例如写入 `.cursor/rules/agent_delegation.md`、`.cursorrules` 或在 Antigravity 中利用 `define_subagent` 声明子代理）。
+2. 将以下工作流准则刻入你的记忆：
+   - **重度推理 / 复杂算法 / 架构方案评估** ➡️ 自动调用/委派给对应的推理子代理；
+   - **大规模编码 / 模块重构 / 测试用例生成** ➡️ 自动调用/委派给对应的编码子代理；
+   - **超长上下文文档阅读 / 多模态设计图解析 / 全库检索** ➡️ 自动调用/委派给对应的长文子代理。
+   - 所有子代理均可通过本地调用器 `.agent_models/delegator.py` 执行外部模型委派。
+
+---
+请现在就直接开始生成 `.agent_models/config.json` 和 `.agent_models/delegator.py`，配置完成后向我汇报已就绪的子代理清单与测试方式！
+"""
+        return prompt.strip()
+
+    def _refresh_prompt_display(self):
+        prompt_text = self._generate_injection_prompt()
+        self.txt_prompt.delete("1.0", "end")
+        self.txt_prompt.insert("1.0", prompt_text)
+
+    def _update_code_display(self, p_id=None, name=None, model=None, url="", key="", protocol="openai_chat"):
+        clean_name = name or (self.ent_name.get().strip() if hasattr(self, "ent_name") else "当前模型")
+        clean_url = (url or (self.ent_url.get().strip() if hasattr(self, "ent_url") else "")).rstrip("/")
+        clean_key = key or (self.ent_key.get().strip() if hasattr(self, "ent_key") else "")
+        clean_model = model or (self.cmb_model.get().strip() if hasattr(self, "cmb_model") else "claude-3-5-sonnet")
+        clean_proto = "anthropic" if protocol == "anthropic" else ("gemini" if protocol == "gemini" else "openai")
+
+        code_text = f'''"""
+通用大模型调用工具 - {clean_name} ({clean_model})
+生成时间: {time.strftime('%Y-%m-%d %H:%M:%S')}
+
+特点:
+1. 完全自包含独立文件：无任何本地环境路径依赖，只要有 requests 即可在任何项目或服务器直接运行。
+2. 已预置测试通过的 Base URL、API Key 与推荐模型参数。
+3. 针对数据库/批处理场景：提供单次调用 call_llm 与数据库列表批量处理示例。
+"""
+
+import os
+import json
+import time
+from typing import Union, List, Dict, Optional, Any
+import requests
+
+# 预置配置信息
+CONFIG = {{
+    "base_url": "{clean_url}",
+    "api_key": "{clean_key}",
+    "model": "{clean_model}",
+    "protocol": "{clean_proto}"
+}}
+
+
+def call_llm(
+    prompt: Union[str, List[Dict[str, str]]],
+    system: Optional[str] = None,
+    model: Optional[str] = None,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    protocol: Optional[str] = None,
+    temperature: float = 0.6,
+    max_tokens: int = 4096,
+    timeout: int = 45,
+    retries: int = 2
+) -> str:
+    key = api_key or CONFIG["api_key"]
+    m = model or CONFIG["model"]
+    url = (base_url or CONFIG["base_url"]).rstrip("/")
+    proto = (protocol or CONFIG["protocol"]).lower()
+
+    if isinstance(prompt, str):
+        messages = [{{"role": "user", "content": prompt}}]
+    elif isinstance(prompt, list):
+        messages = list(prompt)
+    else:
+        raise ValueError("prompt 参数必须为字符串或消息字典列表")
+
+    last_err = None
+    for attempt in range(retries + 1):
+        try:
+            if proto in ("anthropic", "claude"):
+                endpoint = f"{{url}}/v1/messages" if not url.endswith(("/messages", "/v1")) else (f"{{url}}/messages" if url.endswith("/v1") else url)
+                headers = {{
+                    "x-api-key": key,
+                    "Authorization": f"Bearer {{key}}",
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json"
+                }}
+                payload = {{
+                    "model": m,
+                    "max_tokens": max_tokens,
+                    "messages": messages
+                }}
+                if system:
+                    payload["system"] = system
+                resp = requests.post(endpoint, json=payload, headers=headers, timeout=timeout)
+                if resp.status_code != 200:
+                    raise RuntimeError(f"Anthropic 接口报错 [{{resp.status_code}}]: {{resp.text}}")
+                data = resp.json()
+                blocks = [b.get("text", "") for b in data.get("content", []) if isinstance(b, dict) and b.get("type") == "text"]
+                return "".join(blocks).strip() if blocks else str(data.get("text", "")).strip()
+
+            else:  # openai
+                endpoint = f"{{url}}/chat/completions" if not url.endswith("/chat/completions") else url
+                headers = {{
+                    "Authorization": f"Bearer {{key}}",
+                    "Content-Type": "application/json"
+                }}
+                full_msgs = []
+                if system:
+                    full_msgs.append({{"role": "system", "content": system}})
+                full_msgs.extend(messages)
+                payload = {{
+                    "model": m,
+                    "messages": full_msgs,
+                    "max_tokens": max_tokens
+                }}
+                if temperature is not None:
+                    payload["temperature"] = temperature
+                resp = requests.post(endpoint, json=payload, headers=headers, timeout=timeout)
+                if resp.status_code != 200:
+                    raise RuntimeError(f"OpenAI 接口报错 [{{resp.status_code}}]: {{resp.text}}")
+                return resp.json()["choices"][0]["message"]["content"].strip()
+
+        except Exception as e:
+            last_err = e
+            if attempt < retries:
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            raise RuntimeError(f"模型调用失败 (已重试 {{retries}} 次): {{last_err}}") from last_err
+
+
+def process_database_records(
+    db_rows: List[Dict[str, Any]],
+    input_field: str = "content",
+    output_field: str = "ai_analysis",
+    task_prompt: str = "请对以下内容进行要点提炼与分类："
+) -> List[Dict[str, Any]]:
+    print(f"[*] 开始处理数据库记录，共 {{len(db_rows)}} 条...")
+    for idx, row in enumerate(db_rows):
+        text = str(row.get(input_field, ""))
+        try:
+            row[output_field] = call_llm(prompt=f"{{task_prompt}}\\n\\n{{text}}")
+            row["_status"] = "SUCCESS"
+        except Exception as err:
+            row[output_field] = None
+            row["_status"] = f"ERROR: {{err}}"
+        print(f"[{{idx+1}}/{{len(db_rows)}}] 处理完成 (ID: {{row.get('id', idx)}})")
+    return db_rows
+
+
+if __name__ == "__main__":
+    print("=== 测试调用当前模型 ===")
+    answer = call_llm("请回答'连接正常'四个字。")
+    print("模型回复:", answer)
+'''
+        self.txt_code.delete("1.0", "end")
+        self.txt_code.insert("1.0", code_text)
+
+    def _update_mcp_display(self):
+        mcp_script = str(_ROOT / "mcp_server.py")
+        mcp_cfg = {
+            "mcpServers": {
+                "agent-model-connect": {
+                    "command": "python",
+                    "args": [
+                        mcp_script
+                    ]
+                }
+            }
+        }
+        json_str = json.dumps(mcp_cfg, ensure_ascii=False, indent=2)
+        self.txt_mcp.delete("1.0", "end")
+        self.txt_mcp.insert("1.0", json_str)
+
+    # ─── 复制工具方法 ─────────────────────────────────────────────────────────
+
+    def _copy_text(self, text, title="已复制", custom_msg=None):
+        if not text or not text.strip():
+            messagebox.showwarning("提示", "当前内容为空，无法复制！")
+            return
+        self.clipboard_clear()
+        self.clipboard_append(text.strip())
+        msg = custom_msg or f"已成功复制到系统剪贴板！\n可以直接粘贴到任何项目文件或脚本中使用。"
+        messagebox.showinfo(title, msg)
+
+    def _copy_injection_prompt(self):
+        count = len(self.selected_for_injection)
+        prompt_text = self.txt_prompt.get("1.0", "end-1c")
+        self._copy_text(
+            prompt_text,
+            title="提示词已复制",
+            custom_msg=(
+                f"🎉 已成功复制包含 {count} 个外部模型的 Agent 注入提示词！\n\n"
+                "【下一步操作】\n"
+                "1. 将复制的内容直接发给你的 AI Agent (Antigravity / Cursor / Claude Code 等)。\n"
+                "2. Agent 将自动在当前工作区生成 .agent_models 目录、落实在地配置并定义 Subagents 子代理。\n"
+                "3. 后续即可永久指挥 Agent 及其子代理协同调用这些模型！"
+            )
+        )
+
+    def _start_gateway_threaded(self):
+        def _run():
+            from gateway import app
+            app.run(host="127.0.0.1", port=8765, debug=False)
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        messagebox.showinfo(
+            "网关已启动",
+            "🚀 本地 OpenAI 兼容网关已在后台运行！\n\n"
+            "地址: http://127.0.0.1:8765/v1\n"
+            "支持将任何仅支持 OpenAI API 的软件（如 Codex、Dify、Chatbox）\n"
+            "指向此地址直接使用已配置的模型。"
+        )
+
+
+def launch():
+    app = ModelConnectGUI()
+    app.mainloop()
+
+
+if __name__ == "__main__":
+    launch()
