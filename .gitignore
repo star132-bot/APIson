@@ -8,3 +8,4 @@ gui_backup_tkinter.py
 models/state.json
 .idea/
 .vscode/
+.venv/

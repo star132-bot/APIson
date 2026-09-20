@@ -260,6 +260,53 @@ def cmd_show_key(args):
         print(f"  状态:     {c('[未配置]', RED)}")
         print(f"  提示:     set {env_var}=你的密钥")
 
+# ─── 命令：balance ────────────────────────────────────────────────────────────
+def cmd_balance(args):
+    """查询模型余额/额度"""
+    state = _load()
+    providers = state.get("providers", {})
+    target = getattr(args, "provider", None)
+
+    if target:
+        if target not in providers:
+            print(c(f"错误：未找到厂商 '{target}'", RED))
+            return
+        targets = [target]
+    else:
+        targets = list(providers.keys())
+
+    if not targets:
+        print(c("当前未注册任何模型厂商", YELLOW))
+        return
+
+    from tools.balance import query_balance
+
+    print(f"\n{c('API 账户余额与额度查询', BOLD)}")
+    print("─" * 55)
+
+    for p_id in targets:
+        cfg = {**providers[p_id], **_load_provider(p_id)}
+        name = cfg.get("name", p_id)
+        url = cfg.get("base_url", "")
+        key = cfg.get("api_key") or (os.environ.get(cfg.get("api_key_env", "")) if cfg.get("api_key_env") else "")
+
+        print(f"\n[•] 厂商: {c(name, CYAN)} ({p_id})")
+        print(f"    Base URL: {url}")
+
+        res = query_balance(url, key, p_id, name)
+        if res.get("success"):
+            bal = res.get("balance", "")
+            details = res.get("details", "")
+            print(c(f"    💰 账户余额: {bal}", GREEN))
+            if details:
+                print(f"    📊 额度明细: {details}")
+        elif not res.get("supported"):
+            print(c(f"    ℹ️  平台提示: {res.get('message')}", YELLOW))
+        else:
+            print(c(f"    ❌ 查询失败: {res.get('message')}", RED))
+
+    print("\n" + "─" * 55)
+
 # ─── 命令：mcp-config ─────────────────────────────────────────────────────────
 def cmd_mcp_config(args):
     mcp_path = str(_ROOT / "mcp_server.py")
@@ -336,6 +383,9 @@ def main():
     p_sh = sub.add_parser("show-key", help="查看 API Key 配置状态")
     p_sh.add_argument("provider")
 
+    p_bal = sub.add_parser("balance", help="查询 API 余额与额度")
+    p_bal.add_argument("provider", nargs="?", default=None, help="厂商标识（留空则查询所有）")
+
     sub.add_parser("mcp-config", help="导出适用于 Agent 的 MCP 客户端配置")
     sub.add_parser("gui", help="弹出桌面可视化模型管理与导出窗口")
 
@@ -349,6 +399,7 @@ def main():
         "list": cmd_list,
         "add": cmd_add,
         "test": cmd_test,
+        "balance": cmd_balance,
         "enable": cmd_enable,
         "disable": cmd_disable,
         "set-default": cmd_set_default,
@@ -365,6 +416,7 @@ def main():
         print(f"\n{c('快速开始:', BOLD)}")
         print(f"  python manager.py gui               # 弹出图形化操作窗口")
         print(f"  python manager.py list              # 查看已注册模型")
+        print(f"  python manager.py balance           # 查询模型余额与额度")
         print(f"  python manager.py test grok         # 测试 Grok 连通性")
         print(f"  python manager.py mcp-config        # 导出 MCP 配置文件")
         print(f"  python manager.py serve             # 启动本地代理网关")

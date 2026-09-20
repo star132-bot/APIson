@@ -212,7 +212,12 @@ def _call_openai_chat(base_url, model, task, system_prompt, api_key, timeout, re
 
     data = resp.json()
     result_base["usage"] = data.get("usage", {})
-    return data["choices"][0]["message"]["content"]
+    choice = data.get("choices", [{}])[0]
+    msg = choice.get("message", {})
+    content = msg.get("content")
+    if not content:
+        content = msg.get("reasoning_content") or choice.get("text") or ""
+    return content
 
 
 def _call_gemini(base_url, model, task, system_prompt, api_key, timeout, requests, result_base) -> str:
@@ -234,7 +239,12 @@ def _call_gemini(base_url, model, task, system_prompt, api_key, timeout, request
         raise RuntimeError(f"Gemini API 请求失败 [{resp.status_code}]: {resp.text[:500]}")
 
     data = resp.json()
-    return data["candidates"][0]["content"]["parts"][0]["text"]
+    candidates = data.get("candidates", [])
+    if not candidates:
+        return str(data)
+    cand_parts = candidates[0].get("content", {}).get("parts", [])
+    texts = [p.get("text", "") for p in cand_parts if isinstance(p, dict) and "text" in p]
+    return "".join(texts) or str(data)
 
 
 def _call_anthropic(base_url, model, task, system_prompt, api_key, timeout, requests, result_base) -> str:

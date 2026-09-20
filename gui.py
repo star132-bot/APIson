@@ -33,8 +33,29 @@ _PROVIDERS_DIR = _ROOT / "models" / "providers"
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
-# 官方主流模型快速预设
+# 官方主流模型快速预设 (涵盖国内大厂、国际顶尖、开源托管与本地部署)
 PRESETS = {
+    # ── 国内主流平台 ──
+    "【预设】火山方舟 Agent Plan - 兼容 OpenAI 协议 (deepseek-v4-pro / doubao-seed)": {
+        "provider": "volces-openai",
+        "name": "火山方舟 (OpenAI协议)",
+        "url": "https://ark.cn-beijing.volces.com/api/plan/v3",
+        "protocol": "openai_chat",
+        "model": "deepseek-v4-pro",
+        "key": "",
+        "models": ["deepseek-v4-pro", "deepseek-v4-flash", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite", "claude-3-5-sonnet"],
+        "hint": "适配 Cursor / Trae / Roo / OpenClaw / Hermes 等。支持 DeepSeek 4.0 旗舰推理"
+    },
+    "【预设】火山方舟 Agent Plan - 兼容 Anthropic 协议 (Claude Code)": {
+        "provider": "volces-claude",
+        "name": "火山方舟 (Anthropic协议)",
+        "url": "https://ark.cn-beijing.volces.com/api/plan",
+        "protocol": "anthropic",
+        "model": "deepseek-v4-pro",
+        "key": "",
+        "models": ["deepseek-v4-pro", "deepseek-v4-flash", "claude-3-5-sonnet", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite"],
+        "hint": "适配 Claude Code。专属 Base URL: https://ark.cn-beijing.volces.com/api/plan"
+    },
     "【预设】DeepSeek 官方平台 - deepseek-reasoner (R1) / chat (V3)": {
         "provider": "deepseek",
         "name": "DeepSeek (深度求索)",
@@ -45,15 +66,66 @@ PRESETS = {
         "models": ["deepseek-reasoner", "deepseek-chat"],
         "hint": "DeepSeek 官方推理大模型 (R1) 与通用对话模型 (V3)"
     },
-    "【预设】Grok xAI (中转) - grok-4.6": {
-        "provider": "grok",
-        "name": "Grok (xAI)",
-        "url": "https://194834.xyz/v1",
+    "【预设】阿里百炼通义千问 (DashScope) - qwen-max / coder-turbo": {
+        "provider": "qwen-dashscope",
+        "name": "阿里通义千问 (百炼)",
+        "url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "protocol": "openai_chat",
-        "model": "grok-4.6",
+        "model": "qwen-max",
         "key": "",
-        "models": ["grok-4.6", "grok-beta"],
-        "hint": "已实测通过的 Grok 4.6 旗舰模型"
+        "models": ["qwen-max", "qwen-plus", "qwen-coder-turbo", "qwen2.5-72b-instruct", "qwen2.5-coder-32b-instruct"],
+        "hint": "阿里百炼 OpenAI 兼容端点，代码与通用综合能力极佳"
+    },
+    "【预设】智谱 AI (清言 GLM) - glm-4-plus / glm-4-long": {
+        "provider": "zhipu-glm",
+        "name": "智谱 GLM (BigModel)",
+        "url": "https://open.bigmodel.cn/api/paas/v4",
+        "protocol": "openai_chat",
+        "model": "glm-4-plus",
+        "key": "",
+        "models": ["glm-4-plus", "glm-4-long", "glm-4-flash", "glm-4-air"],
+        "hint": "智谱开放平台，支持百万长上下文 (glm-4-long) 与超快 flash"
+    },
+    "【预设】月之暗面 (Kimi / Moonshot) - moonshot-v1-128k": {
+        "provider": "moonshot-kimi",
+        "name": "月之暗面 (Kimi)",
+        "url": "https://api.moonshot.cn/v1",
+        "protocol": "openai_chat",
+        "model": "moonshot-v1-128k",
+        "key": "",
+        "models": ["moonshot-v1-128k", "moonshot-v1-32k", "moonshot-v1-8k"],
+        "hint": "Kimi 官方长上下文对话模型"
+    },
+    "【预设】硅基流动 (SiliconFlow) - 全开源加速托管": {
+        "provider": "siliconflow",
+        "name": "硅基流动 (SiliconFlow)",
+        "url": "https://api.siliconflow.cn/v1",
+        "protocol": "openai_chat",
+        "model": "deepseek-ai/DeepSeek-R1",
+        "key": "",
+        "models": ["deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-V3", "Qwen/Qwen2.5-Coder-32B-Instruct", "meta-llama/Llama-3.3-70B-Instruct"],
+        "hint": "高并发免运维的开源大模型云端托管服务"
+    },
+    # ── 国际前沿与聚合通道 ──
+    "【预设】OpenAI 官方平台 - gpt-4o / o3-mini / o1": {
+        "provider": "openai",
+        "name": "OpenAI 官方",
+        "url": "https://api.openai.com/v1",
+        "protocol": "openai_chat",
+        "model": "gpt-4o",
+        "key": "",
+        "models": ["gpt-4o", "gpt-4o-mini", "o3-mini", "o1", "o1-mini"],
+        "hint": "OpenAI 官方最新旗舰多模态及前沿推理大模型"
+    },
+    "【预设】Anthropic Claude 官方 - claude-3-7-sonnet / 3-5-sonnet": {
+        "provider": "anthropic",
+        "name": "Anthropic Claude",
+        "url": "https://api.anthropic.com",
+        "protocol": "anthropic",
+        "model": "claude-3-7-sonnet-20250219",
+        "key": "",
+        "models": ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"],
+        "hint": "Anthropic 官方前沿编程与长篇推理大模型"
     },
     "【预设】Google Gemini (官方兼容端点) - gemini-2.5-pro / flash": {
         "provider": "gemini",
@@ -65,26 +137,37 @@ PRESETS = {
         "models": ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
         "hint": "支持超长上下文与全景分析的 Google Gemini 官方端点"
     },
-    "【预设】火山引擎 Agent Plan - 兼容 Anthropic 协议 (Claude Code)": {
-        "provider": "volces-claude",
-        "name": "火山引擎 (Anthropic 协议)",
-        "url": "https://ark.cn-beijing.volces.com/api/plan",
-        "protocol": "anthropic",
-        "model": "claude-3-5-sonnet",
-        "key": "",
-        "models": ["claude-3-5-sonnet", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite"],
-        "hint": "适配 Claude Code。专属 Base URL: https://ark.cn-beijing.volces.com/api/plan"
-    },
-    "【预设】火山引擎 Agent Plan - 兼容 OpenAI 协议 (Cursor / Trae / Roo)": {
-        "provider": "volces-openai",
-        "name": "火山引擎 (OpenAI 协议)",
-        "url": "https://ark.cn-beijing.volces.com/api/plan/v3",
+    "【预设】Grok xAI (中转/官方) - grok-4.6": {
+        "provider": "grok",
+        "name": "Grok (xAI)",
+        "url": "https://194834.xyz/v1",
         "protocol": "openai_chat",
-        "model": "claude-3-5-sonnet",
+        "model": "grok-4.6",
         "key": "",
-        "models": ["claude-3-5-sonnet", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite"],
-        "hint": "适配 Cursor, Trae, OpenClaw, Codex CLI 等。专属 Base URL: https://ark.cn-beijing.volces.com/api/plan/v3"
+        "models": ["grok-4.6", "grok-beta"],
+        "hint": "已实测通过的 Grok 4.6 旗舰模型"
     },
+    "【预设】OpenRouter (全球聚合网关) - 多模型一体化": {
+        "provider": "openrouter",
+        "name": "OpenRouter (聚合网关)",
+        "url": "https://openrouter.ai/api/v1",
+        "protocol": "openai_chat",
+        "model": "anthropic/claude-3.7-sonnet",
+        "key": "",
+        "models": ["anthropic/claude-3.7-sonnet", "openai/gpt-4o", "deepseek/deepseek-r1", "google/gemini-2.5-pro"],
+        "hint": "全球聚合网关，一个 API Key 调用全网所有顶尖大模型"
+    },
+    "【预设】Groq (全球极速推理) - 超低延迟 LPU": {
+        "provider": "groq",
+        "name": "Groq (极速推理)",
+        "url": "https://api.groq.com/openai/v1",
+        "protocol": "openai_chat",
+        "model": "llama-3.3-70b-versatile",
+        "key": "",
+        "models": ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "mixtral-8x7b-32768"],
+        "hint": "Groq LPU 超高吞吐极速推理端点"
+    },
+    # ── 本地私有部署 ──
     "【预设】本地 Ollama (本地开源模型)": {
         "provider": "ollama",
         "name": "本地 Ollama",
@@ -93,7 +176,17 @@ PRESETS = {
         "model": "qwen2.5-coder:7b",
         "key": "ollama",
         "models": ["qwen2.5-coder:7b", "deepseek-r1:7b", "llama3.1:8b"],
-        "hint": "本地运行的开源大模型服务"
+        "hint": "本地运行的开源大模型服务 (自动拉取本机构建的模型)"
+    },
+    "【预设】本地 LM Studio / vLLM (本地 OpenAI 服务)": {
+        "provider": "local-openai",
+        "name": "本地 LM Studio / vLLM",
+        "url": "http://localhost:1234/v1",
+        "protocol": "openai_chat",
+        "model": "local-model",
+        "key": "not-needed",
+        "models": ["local-model"],
+        "hint": "本地 LM Studio (1234) 或 vLLM (8000) 运行的 OpenAI 兼容端点"
     }
 }
 
@@ -116,9 +209,11 @@ def save_state_dict(data: dict):
 
 
 def detect_model_role(p_id: str, name: str, model: str) -> dict:
-    """根据模型名称智能推断专长角色与子代理配置"""
+    """根据模型名称智能推断专长角色与子代理配置（覆盖 7 大专长领域）"""
     combined = f"{p_id} {name} {model}".lower()
-    if any(k in combined for k in ["deepseek", "r1", "reason", "reasoner", "o1", "o3"]):
+
+    # 1. 深度推理 (Reasoning)
+    if any(k in combined for k in ["deepseek-v4-pro", "deepseek-r1", "reasoner", "reason", "r1", "o1", "o3", "qwq", "distill", "thinking"]):
         return {
             "role_id": f"subagent-reasoner-{p_id}",
             "role_title": f"深度推理专家 ({name})",
@@ -126,19 +221,32 @@ def detect_model_role(p_id: str, name: str, model: str) -> dict:
             "tag_color": ("#FEE2E2", "#381014"),
             "tag_border": "#7F1D1D",
             "tag_text_color": ("#991B1B", "#F87171"),
-            "specialty": "负责复杂算法设计、数理逻辑推导、核心架构方案选型及疑难 Bug 深度根因排查"
+            "specialty": "负责复杂算法设计、数理逻辑推导、核心架构方案决策及疑难 Bug 深度根因排查"
         }
-    elif any(k in combined for k in ["grok", "coder", "qwen", "codex", "codestral"]):
+    # 2. 敏捷编程 (Coding)
+    elif any(k in combined for k in ["coder", "codex", "codestral", "qwen-coder", "claude-3-7", "sonnet", "dev", "code"]):
         return {
             "role_id": f"subagent-coder-{p_id}",
             "role_title": f"敏捷开发专家 ({name})",
-            "tag": "⚡ 敏捷编码",
+            "tag": "💻 敏捷编程",
             "tag_color": ("#FEF3C7", "#361B04"),
             "tag_border": "#92400E",
             "tag_text_color": ("#92400E", "#FBBF24"),
-            "specialty": "负责高吞吐代码实现、复杂模块重构、高覆盖率单元测试及快速样板开发"
+            "specialty": "负责高吞吐全栈编码、组件抽象重构、测试用例编写与多文件代码协同"
         }
-    elif any(k in combined for k in ["gemini", "sonnet", "claude", "long", "flash"]):
+    # 3. 极速响应 (Fast / Lightweight)
+    elif any(k in combined for k in ["flash", "haiku", "mini", "4o-mini", "turbo", "lite", "speed", "groq", "small", "7b", "8b"]):
+        return {
+            "role_id": f"subagent-fast-{p_id}",
+            "role_title": f"极速响应专家 ({name})",
+            "tag": "⚡ 极速响应",
+            "tag_color": ("#ECFDF5", "#06321F"),
+            "tag_border": "#047857",
+            "tag_text_color": ("#047857", "#34D399"),
+            "specialty": "负责高频即时任务处理、轻量化自动化脚本、意图初筛与超低延迟快速路由"
+        }
+    # 4. 全景长文 (Long Context / Research)
+    elif any(k in combined for k in ["long", "128k", "200k", "1m", "moonshot", "kimi", "glm-long", "gemini-pro", "gemini-2.5"]):
         return {
             "role_id": f"subagent-researcher-{p_id}",
             "role_title": f"全景长文专家 ({name})",
@@ -146,8 +254,31 @@ def detect_model_role(p_id: str, name: str, model: str) -> dict:
             "tag_color": ("#E0E7FF", "#181838"),
             "tag_border": "#3730A3",
             "tag_text_color": ("#3730A3", "#818CF8"),
-            "specialty": "负责超长项目上下文理解、全库依赖检索、多模态设计图与原型解析、详尽技术文档生成"
+            "specialty": "负责超长项目上下文理解、全库依赖检索、多模态技术白皮书与技术文档生成"
         }
+    # 5. 智能联网检索 (Search & Grounding)
+    elif any(k in combined for k in ["search", "perplexity", "sonar", "browse", "online", "harness"]):
+        return {
+            "role_id": f"subagent-searcher-{p_id}",
+            "role_title": f"联网检索专家 ({name})",
+            "tag": "🔍 智能检索",
+            "tag_color": ("#CFFAFE", "#082F49"),
+            "tag_border": "#0284C7",
+            "tag_text_color": ("#0284C7", "#38BDF8"),
+            "specialty": "负责全网最新技术信息查证、前沿开源组件调研、官方 API 最新规范考证"
+        }
+    # 6. 多模态视觉 (Multimodal Vision)
+    elif any(k in combined for k in ["vision", "vl", "omni", "4o", "multimodal", "image"]):
+        return {
+            "role_id": f"subagent-vision-{p_id}",
+            "role_title": f"多模态视觉专家 ({name})",
+            "tag": "🎨 多模态视觉",
+            "tag_color": ("#FCE7F3", "#3B0728"),
+            "tag_border": "#9D174D",
+            "tag_text_color": ("#9D174D", "#F472B6"),
+            "specialty": "负责 UI/UX 原型图与架构流程图精确识别、前端界面还原度比对及图像理解"
+        }
+    # 7. 通用协同助手 (General Assistant)
     else:
         return {
             "role_id": f"subagent-assistant-{p_id}",
@@ -156,7 +287,7 @@ def detect_model_role(p_id: str, name: str, model: str) -> dict:
             "tag_color": ("#F3E8FF", "#2E0E46"),
             "tag_border": "#6B21A8",
             "tag_text_color": ("#6B21A8", "#C084FC"),
-            "specialty": "负责日常子任务委派分流、格式整理校验、代码微调及跨模型协同"
+            "specialty": "负责日常子任务委派分流、格式整理校验、代码微调及跨模型协同调度"
         }
 
 
@@ -164,9 +295,14 @@ class ModelConnectGUI(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Agent Model Connect — 模型助手调度与多模型注入面板")
-        self.geometry("1220x870")
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        cx = max(0, (sw - 1220) // 2)
+        cy = max(0, (sh - 870) // 2)
+        self.geometry(f"1220x870+{cx}+{cy}")
         self.minsize(1080, 750)
         self.configure(fg_color=("#F1F5F9", "#0B0F19"))
+
 
         # 加载应用图标
         ico_file = _ROOT / "icon.ico"
@@ -181,11 +317,28 @@ class ModelConnectGUI(ctk.CTk):
         self.selected_provider_id = None
         self.selected_for_injection = set(self.current_state.get("providers", {}).keys())
         self.check_vars = {}
-        self.is_testing = False
+        self.testing_models = set()
+        self.model_test_results = {}
+        self.checking_balances = set()
+        self.model_balance_results = {}
+        self.card_badges = {}
+        self.card_containers = {}
+        self.active_role_filter = "全部"
+        self.role_filter_btns = {}
 
         # 构建界面布局
         self._build_layout()
         self._refresh_model_list()
+
+        # 自动提升窗口并获取焦点
+        try:
+            self.lift()
+            self.focus_force()
+        except Exception:
+            pass
+
+
+
 
     def _build_layout(self):
         # ─── 顶部导航栏 (微光质感) ─────────────────────────────────────────────
@@ -270,7 +423,7 @@ class ModelConnectGUI(ctk.CTk):
         # ─── 左侧：模型助手列表栏 (暗调卡片) ───────────────────────────────────
         left_card = ctk.CTkFrame(
             main_container,
-            width=345,
+            width=360,
             corner_radius=14,
             fg_color=("#FFFFFF", "#131C2E"),
             border_width=1,
@@ -318,7 +471,7 @@ class ModelConnectGUI(ctk.CTk):
         btn_unselect_all = ctk.CTkButton(
             select_bar,
             text="清空",
-            width=44,
+            width=36,
             height=22,
             font=ctk.CTkFont(size=10),
             fg_color=("#F1F5F9", "#1E293B"),
@@ -327,12 +480,12 @@ class ModelConnectGUI(ctk.CTk):
             corner_radius=4,
             command=self._unselect_all_injection
         )
-        btn_unselect_all.pack(side=ctk.RIGHT, padx=(4, 0))
+        btn_unselect_all.pack(side=ctk.RIGHT, padx=(2, 0))
 
         btn_select_all = ctk.CTkButton(
             select_bar,
             text="全选",
-            width=44,
+            width=36,
             height=22,
             font=ctk.CTkFont(size=10),
             fg_color=("#F1F5F9", "#1E293B"),
@@ -341,7 +494,72 @@ class ModelConnectGUI(ctk.CTk):
             corner_radius=4,
             command=self._select_all_injection
         )
-        btn_select_all.pack(side=ctk.RIGHT)
+        btn_select_all.pack(side=ctk.RIGHT, padx=(2, 0))
+
+        self.btn_batch_balance = ctk.CTkButton(
+            select_bar,
+            text="💰 查余额",
+            width=62,
+            height=22,
+            font=ctk.CTkFont(size=10, weight="bold"),
+            fg_color="#0284C7",
+            hover_color="#0369A1",
+            text_color="#FFFFFF",
+            corner_radius=4,
+            command=self._batch_check_balances
+        )
+        self.btn_batch_balance.pack(side=ctk.RIGHT, padx=(2, 0))
+
+        self.btn_batch_test = ctk.CTkButton(
+            select_bar,
+            text="⚡ 一键测试",
+            width=68,
+            height=22,
+            font=ctk.CTkFont(size=10, weight="bold"),
+            fg_color="#10B981",
+            hover_color="#059669",
+            text_color="#FFFFFF",
+            corner_radius=4,
+            command=self._batch_test_models
+        )
+        self.btn_batch_test.pack(side=ctk.RIGHT)
+
+        # 搜索与角色快捷筛选栏（为多模型管理提供敏捷检索）
+        filter_box = ctk.CTkFrame(left_card, fg_color="transparent")
+        filter_box.pack(fill=ctk.X, padx=12, pady=(0, 6))
+
+        self.ent_search = ctk.CTkEntry(
+            filter_box,
+            placeholder_text="🔍 快速检索模型名称或标识...",
+            height=28,
+            font=ctk.CTkFont(size=11),
+            corner_radius=6,
+            fg_color=("#F1F5F9", "#0B111E"),
+            border_color=("#E2E8F0", "#1C2945")
+        )
+        self.ent_search.pack(fill=ctk.X, pady=(0, 4))
+        self.ent_search.bind("<KeyRelease>", lambda e: self._filter_model_list())
+
+        # 角色专长过滤标签栏
+        tag_filter_bar = ctk.CTkFrame(filter_box, fg_color="transparent")
+        tag_filter_bar.pack(fill=ctk.X)
+
+        self.role_filter_btns = {}
+        for r_name in ["全部", "🧠推理", "💻编程", "⚡极速", "📚长文"]:
+            btn = ctk.CTkButton(
+                tag_filter_bar,
+                text=r_name,
+                width=42,
+                height=20,
+                font=ctk.CTkFont(size=10),
+                fg_color=("#6366F1" if r_name == "全部" else ("#F1F5F9", "#1E293B")),
+                hover_color=("#4F46E5", "#334155"),
+                text_color=("#FFFFFF" if r_name == "全部" else ("#475569", "#94A3B8")),
+                corner_radius=4,
+                command=lambda rn=r_name: self._set_role_filter(rn)
+            )
+            btn.pack(side=ctk.LEFT, padx=(0, 3))
+            self.role_filter_btns[r_name] = btn
 
         # 左侧可滚动卡片列表容器
         self.provider_scroll = ctk.CTkScrollableFrame(
@@ -463,6 +681,8 @@ class ModelConnectGUI(ctk.CTk):
             border_color=("#E2E8F0", "#22314E")
         )
         self.ent_url.grid(row=1, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=6)
+        self.ent_url.bind("<KeyRelease>", self._on_url_modified)
+        self.ent_url.bind("<FocusOut>", self._on_url_modified)
 
         # 行 3: 接口协议 & 模型名称
         ctk.CTkLabel(form_grid, text="接口协议:", font=ctk.CTkFont(size=12), text_color=("#475569", "#94A3B8")).grid(row=2, column=0, sticky="w", pady=6)
@@ -485,13 +705,16 @@ class ModelConnectGUI(ctk.CTk):
 
         self.cmb_model = ctk.CTkComboBox(
             model_box,
-            values=["deepseek-reasoner", "deepseek-chat"],
+            values=["deepseek-v4-pro", "deepseek-v4-flash", "deepseek-reasoner", "deepseek-chat"],
             height=34,
             corner_radius=8,
             fg_color=("#F8FAFC", "#0C1322"),
-            border_color=("#E2E8F0", "#22314E")
+            border_color=("#E2E8F0", "#22314E"),
+            command=self._on_combobox_selected
         )
         self.cmb_model.pack(side=ctk.LEFT, fill=ctk.X, expand=True)
+        self.cmb_model._entry.bind("<KeyRelease>", self._on_model_modified)
+        self.cmb_model._entry.bind("<FocusOut>", self._on_model_modified)
 
         self.btn_fetch = ctk.CTkButton(
             model_box,
@@ -542,7 +765,7 @@ class ModelConnectGUI(ctk.CTk):
         self.btn_save = ctk.CTkButton(
             action_bar,
             text="💾 保存配置",
-            width=105,
+            width=95,
             height=36,
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=("#475569", "#334155"),
@@ -550,12 +773,12 @@ class ModelConnectGUI(ctk.CTk):
             corner_radius=8,
             command=self._save_form
         )
-        self.btn_save.pack(side=ctk.LEFT, padx=(0, 10))
+        self.btn_save.pack(side=ctk.LEFT, padx=(0, 8))
 
         self.btn_test = ctk.CTkButton(
             action_bar,
-            text="⚡ 开始连通性与生成测试",
-            width=200,
+            text="⚡ 连通性测试",
+            width=120,
             height=36,
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#10B981",
@@ -563,15 +786,29 @@ class ModelConnectGUI(ctk.CTk):
             corner_radius=8,
             command=self._test_model_threaded
         )
-        self.btn_test.pack(side=ctk.LEFT)
+        self.btn_test.pack(side=ctk.LEFT, padx=(0, 8))
+
+        self.btn_balance = ctk.CTkButton(
+            action_bar,
+            text="💰 查询余额",
+            width=105,
+            height=36,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#0284C7",
+            hover_color="#0369A1",
+            corner_radius=8,
+            command=self._check_balance_threaded
+        )
+        self.btn_balance.pack(side=ctk.LEFT, padx=(0, 10))
 
         self.lbl_test_status = ctk.CTkLabel(
             action_bar,
-            text="● 就绪，点击绿色按钮可立即测试模型真实响应",
+            text="● 就绪，可测试模型连通性或查询账户余额",
             font=ctk.CTkFont(size=11),
-            text_color=("#64748B", "#94A3B8")
+            text_color=("#64748B", "#94A3B8"),
+            anchor="w"
         )
-        self.lbl_test_status.pack(side=ctk.LEFT, padx=16)
+        self.lbl_test_status.pack(side=ctk.LEFT, fill=ctk.X, expand=True)
 
         # 卡片 2：现代化导出 Tab 卡片
         export_card = ctk.CTkFrame(
@@ -761,6 +998,222 @@ class ModelConnectGUI(ctk.CTk):
                 p_data["url"], p_data.get("key", ""), p_data["protocol"]
             )
 
+    def _on_combobox_selected(self, choice):
+        self._on_model_modified()
+
+    def _set_role_filter(self, role_name: str):
+        self.active_role_filter = role_name
+        for rn, btn in getattr(self, "role_filter_btns", {}).items():
+            if rn == role_name:
+                btn.configure(fg_color="#6366F1", text_color="#FFFFFF")
+            else:
+                btn.configure(fg_color=("#F1F5F9", "#1E293B"), text_color=("#475569", "#94A3B8"))
+        self._filter_model_list()
+
+    def _filter_model_list(self):
+        query = (self.ent_search.get().strip().lower()) if hasattr(self, "ent_search") else ""
+        role_f = getattr(self, "active_role_filter", "全部")
+
+        for p_id, item in getattr(self, "card_containers", {}).items():
+            card, name, model, proto, tag = item
+            match_query = True
+            if query:
+                match_query = (
+                    query in p_id.lower() or
+                    query in name.lower() or
+                    query in model.lower() or
+                    query in proto.lower() or
+                    query in tag.lower()
+                )
+
+            match_role = True
+            if role_f != "全部":
+                if role_f == "🧠推理" and "推理" not in tag:
+                    match_role = False
+                elif role_f == "💻编程" and "编程" not in tag and "编码" not in tag:
+                    match_role = False
+                elif role_f == "⚡极速" and "极速" not in tag and "敏捷" not in tag:
+                    match_role = False
+                elif role_f == "📚长文" and "长文" not in tag and "全景" not in tag:
+                    match_role = False
+
+            if match_query and match_role:
+                if not card.winfo_ismapped():
+                    card.pack(fill=ctk.X, pady=4, padx=2)
+            else:
+                if card.winfo_ismapped():
+                    card.pack_forget()
+
+    def _on_url_modified(self, event=None):
+        url = self.ent_url.get().strip()
+        url_lower = url.lower()
+        if not url:
+            return
+
+        # 1. 火山方舟（Volcano Engine Ark）自动识别
+        if "ark.cn-beijing.volces.com" in url_lower or "volces.com" in url_lower:
+            if "/api/plan/v3" in url_lower:
+                if self.cmb_protocol.get() != "openai_chat":
+                    self.cmb_protocol.set("openai_chat")
+                    self.lbl_test_status.configure(
+                        text="💡 已识别为【火山方舟 OpenAI 协议】(适配 Cursor / Trae / Roo / Hermes / OpenClaw 等)",
+                        text_color="#10B981"
+                    )
+            elif "/api/plan" in url_lower:
+                if self.cmb_protocol.get() != "anthropic":
+                    self.cmb_protocol.set("anthropic")
+                    self.lbl_test_status.configure(
+                        text="💡 已识别为【火山方舟 Anthropic 协议】(适配 Claude Code)",
+                        text_color="#10B981"
+                    )
+            volces_models = ["deepseek-v4-pro", "deepseek-v4-flash", "claude-3-5-sonnet", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite"]
+            curr_vals = list(self.cmb_model.cget("values") or [])
+            if "deepseek-v4-pro" not in curr_vals:
+                self.cmb_model.configure(values=volces_models)
+                cur_m = self.cmb_model.get().strip()
+                if not cur_m or cur_m in ["deepseek-reasoner", "custom-model"]:
+                    self.cmb_model.set("deepseek-v4-pro")
+
+        # 2. 阿里百炼通义千问 (DashScope)
+        elif "dashscope.aliyuncs.com" in url_lower:
+            if self.cmb_protocol.get() != "openai_chat":
+                self.cmb_protocol.set("openai_chat")
+                self.lbl_test_status.configure(text="💡 已识别为【阿里百炼通义千问 (OpenAI兼容协议)】", text_color="#10B981")
+            qwen_models = ["qwen-max", "qwen-plus", "qwen-coder-turbo", "qwen2.5-72b-instruct", "qwen2.5-coder-32b-instruct"]
+            self.cmb_model.configure(values=qwen_models)
+            if not self.cmb_model.get() or self.cmb_model.get() in ["deepseek-reasoner", "custom-model"]:
+                self.cmb_model.set("qwen-max")
+
+        # 3. 智谱 AI (清言 GLM)
+        elif "open.bigmodel.cn" in url_lower:
+            if self.cmb_protocol.get() != "openai_chat":
+                self.cmb_protocol.set("openai_chat")
+                self.lbl_test_status.configure(text="💡 已识别为【智谱 GLM 开放平台 (OpenAI兼容协议)】", text_color="#10B981")
+            glm_models = ["glm-4-plus", "glm-4-long", "glm-4-flash", "glm-4-air"]
+            self.cmb_model.configure(values=glm_models)
+            if not self.cmb_model.get() or self.cmb_model.get() in ["deepseek-reasoner", "custom-model"]:
+                self.cmb_model.set("glm-4-plus")
+
+        # 4. 月之暗面 (Moonshot / Kimi)
+        elif "moonshot.cn" in url_lower:
+            if self.cmb_protocol.get() != "openai_chat":
+                self.cmb_protocol.set("openai_chat")
+                self.lbl_test_status.configure(text="💡 已识别为【月之暗面 Kimi (OpenAI兼容协议)】", text_color="#10B981")
+            kimi_models = ["moonshot-v1-128k", "moonshot-v1-32k", "moonshot-v1-8k"]
+            self.cmb_model.configure(values=kimi_models)
+            if not self.cmb_model.get() or self.cmb_model.get() in ["deepseek-reasoner", "custom-model"]:
+                self.cmb_model.set("moonshot-v1-128k")
+
+        # 5. 硅基流动 (SiliconFlow)
+        elif "siliconflow.cn" in url_lower:
+            if self.cmb_protocol.get() != "openai_chat":
+                self.cmb_protocol.set("openai_chat")
+                self.lbl_test_status.configure(text="💡 已识别为【硅基流动 SiliconFlow (OpenAI兼容协议)】", text_color="#10B981")
+            sf_models = ["deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-V3", "Qwen/Qwen2.5-Coder-32B-Instruct"]
+            self.cmb_model.configure(values=sf_models)
+            if not self.cmb_model.get() or self.cmb_model.get() in ["deepseek-reasoner", "custom-model"]:
+                self.cmb_model.set("deepseek-ai/DeepSeek-R1")
+
+        # 6. OpenAI 官方端点
+        elif "api.openai.com" in url_lower:
+            if self.cmb_protocol.get() != "openai_chat":
+                self.cmb_protocol.set("openai_chat")
+                self.lbl_test_status.configure(text="💡 已识别为【OpenAI 官方端点 (OpenAI协议)】", text_color="#10B981")
+            oai_models = ["gpt-4o", "gpt-4o-mini", "o3-mini", "o1", "o1-mini"]
+            self.cmb_model.configure(values=oai_models)
+            if not self.cmb_model.get() or self.cmb_model.get() in ["deepseek-reasoner", "custom-model"]:
+                self.cmb_model.set("gpt-4o")
+
+        # 7. Anthropic 官方端点
+        elif "anthropic.com" in url_lower:
+            if self.cmb_protocol.get() != "anthropic":
+                self.cmb_protocol.set("anthropic")
+                self.lbl_test_status.configure(text="💡 已识别为【Anthropic Claude 原生协议】", text_color="#10B981")
+            claude_models = ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"]
+            self.cmb_model.configure(values=claude_models)
+            if not self.cmb_model.get() or self.cmb_model.get() in ["deepseek-reasoner", "custom-model"]:
+                self.cmb_model.set("claude-3-7-sonnet-20250219")
+
+        # 8. Google Gemini 官方端点
+        elif "generativelanguage.googleapis.com" in url_lower:
+            if "/openai" in url_lower:
+                if self.cmb_protocol.get() != "openai_chat":
+                    self.cmb_protocol.set("openai_chat")
+                    self.lbl_test_status.configure(text="💡 已识别为【Google Gemini 兼容端点 (OpenAI协议)】", text_color="#10B981")
+            else:
+                if self.cmb_protocol.get() != "gemini":
+                    self.cmb_protocol.set("gemini")
+                    self.lbl_test_status.configure(text="💡 已识别为【Google Gemini 原生协议】", text_color="#10B981")
+            gemini_models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]
+            self.cmb_model.configure(values=gemini_models)
+            if not self.cmb_model.get() or self.cmb_model.get() in ["deepseek-reasoner", "custom-model"]:
+                self.cmb_model.set("gemini-2.5-pro")
+
+        # 9. OpenRouter 聚合网关
+        elif "openrouter.ai" in url_lower:
+            if self.cmb_protocol.get() != "openai_chat":
+                self.cmb_protocol.set("openai_chat")
+                self.lbl_test_status.configure(text="💡 已识别为【OpenRouter 全球聚合端点】", text_color="#10B981")
+            router_models = ["anthropic/claude-3.7-sonnet", "openai/gpt-4o", "deepseek/deepseek-r1", "google/gemini-2.5-pro"]
+            self.cmb_model.configure(values=router_models)
+            if not self.cmb_model.get() or self.cmb_model.get() in ["deepseek-reasoner", "custom-model"]:
+                self.cmb_model.set("anthropic/claude-3.7-sonnet")
+
+        # 10. Groq 极速推理
+        elif "api.groq.com" in url_lower:
+            if self.cmb_protocol.get() != "openai_chat":
+                self.cmb_protocol.set("openai_chat")
+                self.lbl_test_status.configure(text="💡 已识别为【Groq 极速推理端点 (OpenAI协议)】", text_color="#10B981")
+            groq_models = ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "mixtral-8x7b-32768"]
+            self.cmb_model.configure(values=groq_models)
+            if not self.cmb_model.get() or self.cmb_model.get() in ["deepseek-reasoner", "custom-model"]:
+                self.cmb_model.set("llama-3.3-70b-versatile")
+
+        # 11. 本地 Ollama
+        elif "11434" in url_lower:
+            if self.cmb_protocol.get() != "openai_chat":
+                self.cmb_protocol.set("openai_chat")
+                self.lbl_test_status.configure(text="💡 已识别为【本地 Ollama 服务端点】", text_color="#10B981")
+
+        # 12. 标准 OpenAI / v1 接口
+        elif "/v1" in url_lower or "deepseek.com" in url_lower:
+            if self.cmb_protocol.get() != "openai_chat":
+                self.cmb_protocol.set("openai_chat")
+
+    def _on_model_modified(self, event=None):
+        val = self.cmb_model.get().strip()
+        if not val:
+            return
+
+        # 智能容错：用户误将 API Key (形如 ark-xxx 或 sk-xxx) 填入模型名称输入框
+        if val.startswith("ark-") or val.startswith("sk-"):
+            self.ent_key.delete(0, "end")
+            self.ent_key.insert(0, val)
+
+            url = self.ent_url.get().strip().lower()
+            if "volces.com" in url or val.startswith("ark-"):
+                default_m = "deepseek-v4-pro"
+                volces_models = ["deepseek-v4-pro", "deepseek-v4-flash", "claude-3-5-sonnet", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite"]
+                self.cmb_model.configure(values=volces_models)
+            else:
+                default_m = "deepseek-chat"
+
+            self.cmb_model.set(default_m)
+            self.lbl_test_status.configure(
+                text=f"💡 检测到输入为 API Key，已自动转移至密钥框，模型已自动设为【{default_m}】",
+                text_color="#F59E0B"
+            )
+            return
+
+        # 智能容错：用户输入 deepseekpro4.0 或 deepseekpro，自动修正为火山官方 DeepSeek 模型标识 deepseek-v4-pro
+        val_clean = val.lower().replace(" ", "").replace("_", "-")
+        if val_clean in ["deepseekpro4.0", "deepseekpro", "deepseek-pro-4.0", "deepseek-pro", "deepseek4.0"]:
+            self.cmb_model.set("deepseek-v4-pro")
+            self.lbl_test_status.configure(
+                text="💡 已为您将 deepseekpro4.0 智能修正为火山方舟官方标识【deepseek-v4-pro】",
+                text_color="#10B981"
+            )
+
     # ─── 多模型勾选操作 ────────────────────────────────────────────────────────
 
     def _select_all_injection(self):
@@ -796,6 +1249,8 @@ class ModelConnectGUI(ctk.CTk):
         for widget in self.provider_scroll.winfo_children():
             widget.destroy()
 
+        self.card_badges = {}
+        self.card_containers = {}
         self.current_state = load_state_dict()
         providers = self.current_state.get("providers", {})
 
@@ -905,11 +1360,53 @@ class ModelConnectGUI(ctk.CTk):
                 fg_color=("#DBEAFE", "#172554") if proto == "anthropic" else ("#DCFCE7", "#052E16"),
                 text_color=("#1D4ED8", "#93C5FD") if proto == "anthropic" else ("#15803D", "#86EFAC"),
                 corner_radius=4,
-                padx=6,
+                padx=5,
                 pady=1
             )
             proto_badge.pack(side=ctk.RIGHT)
             proto_badge.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
+
+            # 单卡片一键测试按钮 ⚡ 与 查余额按钮 💰
+            btn_quick_test = ctk.CTkButton(
+                sub_box,
+                text="⚡",
+                width=24,
+                height=18,
+                font=ctk.CTkFont(size=10),
+                fg_color=("#F1F5F9", "#1E293B"),
+                hover_color=("#E2E8F0", "#334155"),
+                text_color=("#10B981", "#34D399"),
+                corner_radius=4,
+                command=lambda pid=p_id: self._test_single_provider_by_id(pid)
+            )
+            btn_quick_test.pack(side=ctk.RIGHT, padx=(0, 4))
+
+            btn_quick_bal = ctk.CTkButton(
+                sub_box,
+                text="💰",
+                width=24,
+                height=18,
+                font=ctk.CTkFont(size=10),
+                fg_color=("#F1F5F9", "#1E293B"),
+                hover_color=("#E2E8F0", "#334155"),
+                text_color=("#0284C7", "#38BDF8"),
+                corner_radius=4,
+                command=lambda pid=p_id: self._check_single_provider_balance_by_id(pid)
+            )
+            btn_quick_bal.pack(side=ctk.RIGHT, padx=(0, 4))
+
+            # 卡片独立测试状态徽章 (预先创建，通过 _render_card_badge 动态配置)
+            test_status_badge = ctk.CTkLabel(
+                sub_box,
+                text="",
+                font=ctk.CTkFont(size=9, weight="bold"),
+                corner_radius=4,
+                padx=5,
+                pady=1
+            )
+            self.card_badges[p_id] = test_status_badge
+            self.card_containers[p_id] = (card, name, model, proto, role_meta["tag"])
+            self._render_card_badge(p_id)
 
         # 默认选中第一个进行编辑
         if not self.selected_provider_id and providers:
@@ -917,6 +1414,82 @@ class ModelConnectGUI(ctk.CTk):
             self._select_provider(first_id)
         else:
             self._update_selection_displays()
+
+        # 根据当前搜索词与标签即时刷新显示
+        self._filter_model_list()
+
+    def _render_card_badge(self, p_id: str):
+        """动态更新单个卡片的测试状态徽章与余额徽章，无需重构整列 UI"""
+        badge = self.card_badges.get(p_id)
+        if not badge or not badge.winfo_exists():
+            return
+
+        if p_id in self.checking_balances:
+            badge.configure(
+                text="💰查询中",
+                fg_color=("#E0F2FE", "#082F49"),
+                text_color=("#0284C7", "#7DD3FC")
+            )
+            badge.pack(side=ctk.RIGHT, padx=(0, 4))
+            return
+
+        if p_id in self.testing_models:
+            badge.configure(
+                text="⏳测试中",
+                fg_color=("#FEF3C7", "#451A03"),
+                text_color=("#D97706", "#FDE68A")
+            )
+            badge.pack(side=ctk.RIGHT, padx=(0, 4))
+            return
+
+        t_res = self.model_test_results.get(p_id)
+        b_res = self.model_balance_results.get(p_id)
+
+        if t_res:
+            if t_res.get("status") == "success":
+                badge.configure(
+                    text=f"✅ {t_res.get('elapsed', 0)}ms",
+                    fg_color=("#DCFCE7", "#064E3B"),
+                    text_color=("#16A34A", "#86EFAC")
+                )
+                badge.pack(side=ctk.RIGHT, padx=(0, 4))
+                return
+            elif t_res.get("status") == "failed":
+                badge.configure(
+                    text="❌ 失败",
+                    fg_color=("#FEE2E2", "#450A0A"),
+                    text_color=("#DC2626", "#FCA5A5")
+                )
+                badge.pack(side=ctk.RIGHT, padx=(0, 4))
+                return
+
+        if b_res:
+            if b_res.get("success") and b_res.get("balance"):
+                badge.configure(
+                    text=f"💰{b_res['balance']}",
+                    fg_color=("#E0F2FE", "#082F49"),
+                    text_color=("#0284C7", "#7DD3FC")
+                )
+                badge.pack(side=ctk.RIGHT, padx=(0, 4))
+                return
+            elif not b_res.get("supported"):
+                badge.configure(
+                    text="ℹ️控制台",
+                    fg_color=("#FEF3C7", "#451A03"),
+                    text_color=("#D97706", "#FDE68A")
+                )
+                badge.pack(side=ctk.RIGHT, padx=(0, 4))
+                return
+            else:
+                badge.configure(
+                    text="💰失败",
+                    fg_color=("#FEE2E2", "#450A0A"),
+                    text_color=("#DC2626", "#FCA5A5")
+                )
+                badge.pack(side=ctk.RIGHT, padx=(0, 4))
+                return
+
+        badge.pack_forget()
 
     def _select_provider(self, p_id):
         self.selected_provider_id = p_id
@@ -941,10 +1514,26 @@ class ModelConnectGUI(ctk.CTk):
         self.cmb_model.set(current_model)
         self.cmb_model.configure(values=[current_model] if current_model else [])
 
-        self.lbl_test_status.configure(
-            text="● 已就绪，可点击绿色按钮测试连通性",
-            text_color=("#64748B", "#94A3B8")
-        )
+        # 恢复状态提示或显示已知余额/测试结果
+        b_res = self.model_balance_results.get(p_id)
+        t_res = self.model_test_results.get(p_id)
+        if b_res and b_res.get("success"):
+            bal_str = b_res.get("balance", "")
+            dt = b_res.get("details")
+            self.lbl_test_status.configure(
+                text=f"💰 当前余额: {bal_str}" + (f" ({dt})" if dt else ""),
+                text_color="#10B981"
+            )
+        elif t_res and t_res.get("status") == "success":
+            self.lbl_test_status.configure(
+                text=f"● 测试通过 (耗时 {t_res.get('elapsed', 0)}ms)，可点击蓝色按钮查询余额",
+                text_color="#10B981"
+            )
+        else:
+            self.lbl_test_status.configure(
+                text="● 已就绪，可测试模型连通性或查询账户余额",
+                text_color=("#64748B", "#94A3B8")
+            )
 
         self._update_all_exports(
             p_id, cfg.get("name", p_id), current_model,
@@ -953,23 +1542,20 @@ class ModelConnectGUI(ctk.CTk):
         self._highlight_selected_card()
 
     def _highlight_selected_card(self):
-        providers = self.current_state.get("providers", {})
-        widgets = self.provider_scroll.winfo_children()
-        for idx, (p_id, _) in enumerate(providers.items()):
-            if idx < len(widgets):
-                card = widgets[idx]
-                if p_id == self.selected_provider_id:
-                    card.configure(
-                        fg_color=("#EDE9FE", "#1E2945"),
-                        border_width=1.5,
-                        border_color=("#6366F1", "#6366F1")
-                    )
-                else:
-                    card.configure(
-                        fg_color=("#FFFFFF", "#141E33"),
-                        border_width=1,
-                        border_color=("#E2E8F0", "#1C2945")
-                    )
+        for p_id, item in getattr(self, "card_containers", {}).items():
+            card = item[0]
+            if p_id == self.selected_provider_id:
+                card.configure(
+                    fg_color=("#EDE9FE", "#1E2945"),
+                    border_width=1.5,
+                    border_color=("#6366F1", "#6366F1")
+                )
+            else:
+                card.configure(
+                    fg_color=("#FFFFFF", "#141E33"),
+                    border_width=1,
+                    border_color=("#E2E8F0", "#1C2945")
+                )
 
     def _clear_form(self):
         self.selected_provider_id = None
@@ -1046,10 +1632,29 @@ class ModelConnectGUI(ctk.CTk):
         key = self.ent_key.get().strip()
 
         if not url:
-            self.after(0, lambda: messagebox.showwarning("提示", "请先输入 Base URL！"))
+            self.after(0, lambda: self.lbl_test_status.configure(text="⚠️ 请先输入 API Base URL！", text_color="#EF4444"))
             return
 
         self.after(0, lambda: self.btn_fetch.configure(text="⏳...", state="disabled"))
+
+        # 火山方舟 Agent Plan 专有端点处理：不走通用 /models，直接注入官方已验证全量模型
+        if "volces.com" in url.lower() or "api/plan" in url.lower():
+            volces_models = [
+                "deepseek-v4-pro",
+                "deepseek-v4-flash",
+                "claude-3-5-sonnet",
+                "doubao-seed-2.0-pro",
+                "doubao-seed-2.0-lite"
+            ]
+            self.after(0, lambda: self.cmb_model.configure(values=volces_models))
+            self.after(0, lambda: self.cmb_model.set("deepseek-v4-pro"))
+            self.after(0, lambda: self.lbl_test_status.configure(
+                text=f"✨ 已自动载入火山方舟 Plan 官方模型清单 ({len(volces_models)}个，默认 deepseek-v4-pro)",
+                text_color="#10B981"
+            ))
+            self.after(0, lambda: self.btn_fetch.configure(text="🔄 拉取", state="normal"))
+            return
+
         try:
             import requests
             req_url = f"{url}/models" if not url.endswith("/models") else url
@@ -1063,27 +1668,40 @@ class ModelConnectGUI(ctk.CTk):
                 models = [m.get("id") for m in data.get("data", []) if "id" in m]
                 if models:
                     self.after(0, lambda: self.cmb_model.configure(values=models))
-                    self.after(0, lambda: messagebox.showinfo("成功", f"拉取到 {len(models)} 个可用模型！"))
+                    self.after(0, lambda: self.lbl_test_status.configure(
+                        text=f"✅ 成功拉取到 {len(models)} 个可用模型，请在下拉框选择！",
+                        text_color="#10B981"
+                    ))
                 else:
-                    self.after(0, lambda: messagebox.showinfo("提示", "服务端未返回公共列表，可直接输入模型名称。"))
+                    self.after(0, lambda: self.lbl_test_status.configure(
+                        text="● 服务端未返回公共模型列表，可直接手动输入模型名称",
+                        text_color=("#64748B", "#94A3B8")
+                    ))
             else:
-                self.after(0, lambda: messagebox.showinfo("提示", f"端点返回 HTTP {resp.status_code}，可直接输入模型名称。"))
+                self.after(0, lambda: self.lbl_test_status.configure(
+                    text=f"● 远端返回 HTTP {resp.status_code}，可直接手动输入模型名称",
+                    text_color=("#64748B", "#94A3B8")
+                ))
         except Exception as e:
-            self.after(0, lambda: messagebox.showerror("拉取异常", f"连接失败: {str(e)}"))
+            self.after(0, lambda: self.lbl_test_status.configure(
+                text=f"❌ 拉取连接失败: {str(e)[:45]}，可直接手动输入模型名称",
+                text_color="#EF4444"
+            ))
         finally:
             self.after(0, lambda: self.btn_fetch.configure(text="🔄 拉取", state="normal"))
 
     # ─── 连通性测试 ───────────────────────────────────────────────────────────
 
-    def _test_model_threaded(self):
-        if self.is_testing:
+    def _test_single_provider_by_id(self, p_id: str):
+        """通过模型卡片上的 ⚡ 按钮直接测试该模型"""
+        providers = self.current_state.get("providers", {})
+        cfg = providers.get(p_id)
+        if not cfg:
             return
-        self.is_testing = True
-        self.btn_test.configure(state="disabled", fg_color="#64748B")
-        self.lbl_test_status.configure(text="⏳ 正在发送生成测试请求...", text_color=("#4F46E5", "#818CF8"))
-        threading.Thread(target=self._test_model, daemon=True).start()
+        self._test_provider_async(p_id, cfg)
 
-    def _test_model(self):
+    def _test_model_threaded(self):
+        """右侧表单中的“⚡ 开始连通性与生成测试”按钮"""
         p_id = self.ent_provider.get().strip().lower()
         name = self.ent_name.get().strip() or p_id
         url = self.ent_url.get().strip().rstrip("/")
@@ -1092,61 +1710,250 @@ class ModelConnectGUI(ctk.CTk):
         model = self.cmb_model.get().strip()
 
         if not url or not model:
-            self.after(0, lambda: self._on_test_failed("Base URL 和模型名称不能为空！"))
+            self.lbl_test_status.configure(text="❌ Base URL 和模型名称不能为空！", text_color="#EF4444")
             return
 
-        start_t = time.monotonic()
-        try:
-            temp_cfg = {
-                "name": name,
-                "base_url": url,
-                "protocol": protocol,
-                "model": model,
-                "api_key": key,
-                "enabled": True
+        cfg = {
+            "name": name,
+            "base_url": url,
+            "protocol": protocol,
+            "model": model,
+            "api_key": key,
+            "enabled": True
+        }
+        self.current_state.setdefault("providers", {})[p_id] = cfg
+        save_state_dict(self.current_state)
+        self._test_provider_async(p_id, cfg)
+
+    def _batch_test_models(self):
+        """一键测试勾选的所有模型助手 (若未勾选则测试全部已接入模型)"""
+        providers = self.current_state.get("providers", {})
+        if not providers:
+            self.lbl_test_status.configure(text="● 暂无已配置的模型助手可供测试", text_color=("#64748B", "#94A3B8"))
+            return
+
+        target_ids = list(self.selected_for_injection) if self.selected_for_injection else list(providers.keys())
+        for p_id in target_ids:
+            if p_id in providers:
+                self._test_provider_async(p_id, providers[p_id], is_batch=True)
+
+    def _test_provider_async(self, p_id: str, cfg: dict, is_batch: bool = False):
+        """核心异步测试逻辑：多模型并发运行，互不阻塞，在主线程安全更新状态徽章"""
+        if p_id in self.testing_models:
+            return
+
+        self.testing_models.add(p_id)
+        self.model_test_results[p_id] = {"status": "testing"}
+        self._render_card_badge(p_id)
+        self._update_test_ui_status()
+
+        name = cfg.get("name", p_id)
+        model = cfg.get("model", "")
+        url = cfg.get("base_url", "").rstrip("/")
+        key = cfg.get("api_key", "")
+        protocol = cfg.get("protocol", "openai_chat")
+
+        def _worker():
+            start_t = time.monotonic()
+            try:
+                res = delegate_task(
+                    task="请回复'连接成功'这四个字，不要其他内容。",
+                    provider=p_id,
+                    model=model,
+                    api_key=key,
+                    timeout=25
+                )
+                elapsed = res.get("elapsed_ms", int((time.monotonic() - start_t) * 1000))
+                self.after(0, lambda: self._on_test_finished(p_id, res, elapsed, name, model, url, key, protocol))
+            except Exception as e:
+                err_res = {"success": False, "error": str(e)}
+                elapsed = int((time.monotonic() - start_t) * 1000)
+                self.after(0, lambda: self._on_test_finished(p_id, err_res, elapsed, name, model, url, key, protocol))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _on_test_finished(self, p_id: str, res: dict, elapsed: int, name: str, model: str, url: str, key: str, protocol: str):
+        """在 Tkinter 主事件循环中安全执行测试完成回调"""
+        self.testing_models.discard(p_id)
+        if res.get("success"):
+            reply = res.get("result", "").strip().replace("\n", " ")
+            self.model_test_results[p_id] = {
+                "status": "success",
+                "elapsed": elapsed,
+                "reply": reply
             }
-            self.current_state.setdefault("providers", {})[p_id] = temp_cfg
-            save_state_dict(self.current_state)
+            if p_id == self.selected_provider_id:
+                self._update_all_exports(p_id, name, model, url, key, protocol)
+        else:
+            err = res.get("error", "未知错误")
+            self.model_test_results[p_id] = {
+                "status": "failed",
+                "elapsed": elapsed,
+                "error": err
+            }
 
-            res = delegate_task(
-                task="请回复'连接成功'这四个字，不要其他内容。",
-                provider=p_id,
-                model=model,
-                api_key=key,
-                timeout=30
-            )
-            elapsed = res.get("elapsed_ms", int((time.monotonic() - start_t) * 1000))
+        self._render_card_badge(p_id)
+        self._update_test_ui_status()
 
-            if res.get("success"):
-                reply = res.get("result", "").strip()
-                self.after(0, lambda: self._on_test_success(p_id, name, model, elapsed, reply, url, key, protocol))
+    def _update_test_ui_status(self):
+        active_count = len(self.testing_models)
+        if active_count > 0:
+            self.btn_batch_test.configure(state="disabled", text=f"⏳ 正在测试({active_count})")
+            if self.selected_provider_id in self.testing_models:
+                self.lbl_test_status.configure(
+                    text=f"⏳ 正在测试 [{self.selected_provider_id}] (当前并发 {active_count} 个)...",
+                    text_color=("#4F46E5", "#818CF8")
+                )
             else:
-                self.after(0, lambda: self._on_test_failed(res.get("error", "未知错误")))
-        except Exception as e:
-            self.after(0, lambda: self._on_test_failed(str(e)))
-        finally:
-            self.is_testing = False
-            self.after(0, lambda: self.btn_test.configure(state="normal", fg_color="#10B981"))
+                self.lbl_test_status.configure(
+                    text=f"⏳ 正在并发测试 {active_count} 个模型助手...",
+                    text_color=("#4F46E5", "#818CF8")
+                )
+        else:
+            self.btn_batch_test.configure(state="normal", text="⚡ 一键测试")
+            # 汇总或显示当前模型结果
+            if self.selected_provider_id and self.selected_provider_id in self.model_test_results:
+                r = self.model_test_results[self.selected_provider_id]
+                if r["status"] == "success":
+                    self.lbl_test_status.configure(
+                        text=f"✅ [{self.selected_provider_id}] 成功！耗时 {r['elapsed']}ms | 响应: {r['reply'][:30]}",
+                        text_color="#10B981"
+                    )
+                elif r["status"] == "failed":
+                    self.lbl_test_status.configure(
+                        text=f"❌ [{self.selected_provider_id}] 失败: {r.get('error', '')[:50]}",
+                        text_color="#EF4444"
+                    )
+            else:
+                successes = sum(1 for v in self.model_test_results.values() if v.get("status") == "success")
+                fails = sum(1 for v in self.model_test_results.values() if v.get("status") == "failed")
+                if successes + fails > 0:
+                    self.lbl_test_status.configure(
+                        text=f"● 测试完成：{successes} 成功，{fails} 失败。点击卡片可查看详细配置与结果",
+                        text_color="#10B981" if fails == 0 else "#F59E0B"
+                    )
+                else:
+                    self.lbl_test_status.configure(
+                        text="● 就绪，可点击左侧【⚡ 一键测试】或模型卡片上的【⚡】",
+                        text_color=("#64748B", "#94A3B8")
+                    )
 
-    def _on_test_success(self, p_id, name, model, elapsed, reply, url, key, protocol):
+    # ─── 余额与额度查询 ───────────────────────────────────────────────────────
+
+    def _check_single_provider_balance_by_id(self, p_id: str):
+        """通过模型卡片上的 💰 按钮查询该模型余额"""
+        providers = self.current_state.get("providers", {})
+        cfg = providers.get(p_id)
+        if not cfg:
+            return
+        self._check_provider_balance_async(p_id, cfg)
+
+    def _check_balance_threaded(self):
+        """右侧表单中的“💰 查询余额”按钮"""
+        p_id = self.ent_provider.get().strip().lower()
+        name = self.ent_name.get().strip() or p_id
+        url = self.ent_url.get().strip().rstrip("/")
+        key = self.ent_key.get().strip()
+        protocol = self.cmb_protocol.get().strip() or "openai_chat"
+
+        if not url:
+            self.lbl_test_status.configure(text="❌ API Base URL 不能为空！", text_color="#EF4444")
+            return
+
+        cfg = {
+            "name": name,
+            "base_url": url,
+            "api_key": key,
+            "protocol": protocol
+        }
+        self._check_provider_balance_async(p_id, cfg)
+
+    def _batch_check_balances(self):
+        """左侧顶部【💰 查余额】一键批量查询"""
+        providers = self.current_state.get("providers", {})
+        if not providers:
+            self.lbl_test_status.configure(text="● 暂无已配置的模型助手", text_color=("#64748B", "#94A3B8"))
+            return
+
+        target_ids = list(self.selected_for_injection) if self.selected_for_injection else list(providers.keys())
+        for p_id in target_ids:
+            if p_id in providers:
+                self._check_provider_balance_async(p_id, providers[p_id])
+
+    def _check_provider_balance_async(self, p_id: str, cfg: dict):
+        """核心异步查询余额逻辑：在后台线程请求，不卡顿界面"""
+        if p_id in self.checking_balances:
+            return
+
+        self.checking_balances.add(p_id)
+        self._render_card_badge(p_id)
+        if hasattr(self, "btn_balance"):
+            self.btn_balance.configure(state="disabled", text="⏳ 查询中...")
+        if hasattr(self, "btn_batch_balance"):
+            self.btn_batch_balance.configure(state="disabled", text=f"⏳({len(self.checking_balances)})")
+
+        url = cfg.get("base_url", "").strip()
+        key = cfg.get("api_key", "").strip()
+        name = cfg.get("name", p_id)
+
         self.lbl_test_status.configure(
-            text=f"✅ 测试成功！耗时 {elapsed}ms | 响应: {reply[:25]}",
-            text_color="#10B981"
-        )
-        self._update_all_exports(p_id, name, model, url, key, protocol)
-        self._refresh_model_list()
-        messagebox.showinfo(
-            "测试通过",
-            f"🎉 模型 [{name} / {model}] 连通与生成完全正常！\n\n"
-            f"协议: {protocol}\n"
-            f"耗时: {elapsed}ms\n"
-            f"回复: {reply}\n\n"
-            f"下方已实时更新多模型注入提示词与通用调用代码！"
+            text=f"● 正在查询 [{name}] 账户余额与额度...",
+            text_color=("#0284C7", "#38BDF8")
         )
 
-    def _on_test_failed(self, err_msg):
-        self.lbl_test_status.configure(text=f"❌ 连接失败: {err_msg[:50]}", text_color="#EF4444")
-        messagebox.showerror("测试失败", f"未能连通模型端点:\n\n{err_msg}\n\n请检查 Base URL、API Key 与模型名称是否匹配。")
+        def _worker():
+            try:
+                from tools.balance import query_balance
+                res = query_balance(url, key, p_id, name)
+                self.after(0, lambda: self._on_balance_finished(p_id, res, name))
+            except Exception as e:
+                err_res = {
+                    "supported": True,
+                    "success": False,
+                    "balance": None,
+                    "message": f"查询异常: {str(e)}",
+                    "provider_type": "error"
+                }
+                self.after(0, lambda: self._on_balance_finished(p_id, err_res, name))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _on_balance_finished(self, p_id: str, res: dict, name: str):
+        """在 Tkinter 主事件循环中安全执行余额查询回调"""
+        self.checking_balances.discard(p_id)
+        self.model_balance_results[p_id] = res
+        self._render_card_badge(p_id)
+
+        if hasattr(self, "btn_balance"):
+            self.btn_balance.configure(state="normal", text="💰 查询余额")
+
+        active_count = len(self.checking_balances)
+        if hasattr(self, "btn_batch_balance"):
+            if active_count > 0:
+                self.btn_batch_balance.configure(state="disabled", text=f"⏳({active_count})")
+            else:
+                self.btn_batch_balance.configure(state="normal", text="💰 查余额")
+
+        if self.selected_provider_id == p_id or active_count == 0:
+            if res.get("success"):
+                bal = res.get("balance", "")
+                details = res.get("details")
+                dt = f" ({details})" if details else ""
+                self.lbl_test_status.configure(
+                    text=f"💰 [{name}] 余额: {bal}{dt}",
+                    text_color="#10B981"
+                )
+            elif not res.get("supported"):
+                self.lbl_test_status.configure(
+                    text=f"ℹ️ {res.get('message')}",
+                    text_color="#F59E0B"
+                )
+            else:
+                self.lbl_test_status.configure(
+                    text=f"❌ {res.get('message')}",
+                    text_color="#EF4444"
+                )
+
 
     # ─── 导出与提示词生成引擎 ─────────────────────────────────────────────────
 
