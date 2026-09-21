@@ -25,6 +25,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from tools.delegate import delegate_task, _load_state
+from tools.updater import check_update, do_update
 
 _STATE_FILE = _ROOT / "models" / "state.json"
 _PROVIDERS_DIR = _ROOT / "models" / "providers"
@@ -325,6 +326,7 @@ class ModelConnectGUI(ctk.CTk):
         self.card_containers = {}
         self.active_role_filter = "全部"
         self.role_filter_btns = {}
+        self._update_info = None  # 缓存更新检查结果
 
         # 构建界面布局
         self._build_layout()
@@ -415,6 +417,28 @@ class ModelConnectGUI(ctk.CTk):
             command=self._start_gateway_threaded
         )
         btn_gateway.pack(side=ctk.LEFT)
+
+        self.lbl_version = ctk.CTkLabel(
+            top_right_box,
+            text="v··· ",
+            font=ctk.CTkFont(size=10),
+            text_color=("gray60", "gray50"),
+        )
+        self.lbl_version.pack(side=ctk.LEFT, padx=(10, 0))
+
+        self.btn_update = ctk.CTkButton(
+            top_right_box,
+            text="🔄 检查更新",
+            width=90,
+            height=28,
+            font=ctk.CTkFont(size=11),
+            fg_color=("gray85", "#1E293B"),
+            hover_color=("gray75", "#334155"),
+            text_color=("gray40", "gray60"),
+            corner_radius=6,
+            command=self._check_for_updates_threaded,
+        )
+        self.btn_update.pack(side=ctk.LEFT, padx=(4, 0))
 
         # ─── 主体分栏 ──────────────────────────────────────────────────────────
         main_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -757,6 +781,32 @@ class ModelConnectGUI(ctk.CTk):
             command=self._toggle_key_visibility
         )
         self.btn_toggle_key.pack(side=ctk.RIGHT, padx=(6, 0))
+
+        # 行 5: 思考强度
+        ctk.CTkLabel(form_grid, text="思考强度:", font=ctk.CTkFont(size=12), text_color=("gray50", "#94A3B8")).grid(row=4, column=0, sticky="w", pady=6)
+        thinking_box = ctk.CTkFrame(form_grid, fg_color="transparent")
+        thinking_box.grid(row=4, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=6)
+
+        self.cmb_thinking = ctk.CTkOptionMenu(
+            thinking_box,
+            values=["auto (默认)", "low", "medium", "high"],
+            height=34,
+            font=ctk.CTkFont(size=12),
+            fg_color=("gray95", "#0C1322"),
+            button_color=("gray88", "#22314E"),
+            button_hover_color=("gray80", "#33476E"),
+            text_color=("gray30", "#94A3B8"),
+            corner_radius=8,
+        )
+        self.cmb_thinking.set("auto (默认)")
+        self.cmb_thinking.pack(side=ctk.LEFT)
+
+        ctk.CTkLabel(
+            thinking_box,
+            text="  仅对支持推理参数的模型生效 (o1/o3/R1/Claude 3.7 thinking)",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray60", "gray50"),
+        ).pack(side=ctk.LEFT, padx=(8, 0))
 
         # 操作控制与连通测试状态栏
         action_bar = ctk.CTkFrame(config_card, fg_color="transparent")
@@ -1514,6 +1564,9 @@ class ModelConnectGUI(ctk.CTk):
         self.cmb_model.set(current_model)
         self.cmb_model.configure(values=[current_model] if current_model else [])
 
+        thinking_intensity = cfg.get("thinking_intensity")
+        self.cmb_thinking.set(thinking_intensity if thinking_intensity else "auto (默认)")
+
         # 恢复状态提示或显示已知余额/测试结果
         b_res = self.model_balance_results.get(p_id)
         t_res = self.model_test_results.get(p_id)
@@ -1585,6 +1638,8 @@ class ModelConnectGUI(ctk.CTk):
         protocol = self.cmb_protocol.get().strip() or "openai_chat"
         key = self.ent_key.get().strip()
         model = self.cmb_model.get().strip()
+        thinking_raw = self.cmb_thinking.get()
+        thinking_intensity = None if thinking_raw.startswith("auto") else thinking_raw
 
         if not url or not model:
             messagebox.showerror("错误", "Base URL 与模型名称均不能为空！")
@@ -1597,8 +1652,10 @@ class ModelConnectGUI(ctk.CTk):
             "protocol": protocol,
             "enabled": True,
             "api_key": key,
-            "description": f"{name} 助手模型"
+            "description": f"{name} 助手模型",
         }
+        if thinking_intensity:
+            cfg["thinking_intensity"] = thinking_intensity
 
         self.current_state.setdefault("providers", {})[p_id] = cfg
         if not self.current_state.get("default_provider"):
@@ -2279,9 +2336,80 @@ if __name__ == "__main__":
             "指向此地址直接使用已配置的模型。"
         )
 
+    def _check_for_updates_threaded(self):
+        self.btn_update.configure(text="⏳ 检查中...", state="disabled")
+        threading.Thread(target=self._check_for_updates, daemon=True).start()
+
+    def _check_for_updates(self):
+        info = check_update()
+        self._update_info = info
+        self.after(0, lambda: self._on_update_checked(info))
+
+    def _on_update_checked(self, info):
+        self.btn_update.configure(state="normal")
+        if info.get("error"):
+            self.btn_update.configure(text="🔄 检查更新")
+            self.lbl_version.configure(text=f"v{info.get('local_sha', '?')} ")
+            return
+
+        local_sha = info.get("local_sha", "?")
+        remote_sha = info.get("remote_sha", "?")
+        self.lbl_version.configure(text=f"v{local_sha} ")
+
+        if info.get("has_update"):
+            self.btn_update.configure(
+                text="⬆️ 有新版本",
+                fg_color="#F59E0B",
+                hover_color="#D97706",
+                text_color="#FFFFFF",
+            )
+            msg = info.get("remote_message", "")
+            date = info.get("remote_date", "")[:10]
+            if messagebox.askyesno(
+                "发现新版本",
+                f"当前版本: {local_sha}\n最新版本: {remote_sha}\n\n{msg}\n({date})\n\n是否立即更新？"
+            ):
+                self._do_update_threaded()
+        else:
+            self.btn_update.configure(
+                text="✅ 已是最新",
+                fg_color=("gray85", "#1E293B"),
+                text_color=("gray40", "gray60"),
+            )
+            self.after(4000, lambda: self.btn_update.configure(text="🔄 检查更新"))
+
+    def _do_update_threaded(self):
+        self.btn_update.configure(text="⬇️ 更新中...", state="disabled")
+        threading.Thread(target=self._do_update, daemon=True).start()
+
+    def _do_update(self):
+        result = do_update()
+        self.after(0, lambda: self._on_update_done(result))
+
+    def _on_update_done(self, result):
+        self.btn_update.configure(state="normal", text="🔄 检查更新",
+                                   fg_color=("gray85", "#1E293B"), text_color=("gray40", "gray60"))
+        if result.get("success"):
+            messagebox.showinfo(
+                "更新成功",
+                "✅ 已更新到最新版本！\n\n请重启应用以使新版本生效。\n\n" + result.get("output", "")[:300]
+            )
+        else:
+            messagebox.showerror("更新失败", result.get("error", "未知错误"))
+
+    def _auto_check_version(self):
+        """启动时后台异步获取版本号显示"""
+        def _run():
+            from tools.updater import get_local_version
+            local = get_local_version()
+            sha = (local or "")[:7] or "dev"
+            self.after(0, lambda: self.lbl_version.configure(text=f"v{sha} "))
+        threading.Thread(target=_run, daemon=True).start()
+
 
 def launch():
     app = ModelConnectGUI()
+    app._auto_check_version()
     app.mainloop()
 
 

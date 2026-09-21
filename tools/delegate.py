@@ -75,6 +75,7 @@ def delegate_task(
     api_key: Optional[str] = None,
     timeout: int = 60,
     stream: bool = False,
+    thinking_intensity: Optional[str] = None,
 ) -> dict:
     """
     将任务委派给外部模型。
@@ -137,6 +138,9 @@ def delegate_task(
         # 4. 获取 API Key
         key = _get_api_key(merged_cfg, api_key)
 
+        # 从配置读取思考强度（显式参数优先）
+        ti = thinking_intensity or merged_cfg.get("thinking_intensity")
+
         # 5. 构造请求
         content = _call_api(
             protocol=protocol,
@@ -147,6 +151,7 @@ def delegate_task(
             api_key=key,
             timeout=timeout,
             result_base=result_base,
+            thinking_intensity=ti,
         )
 
         elapsed = int((time.monotonic() - start) * 1000)
@@ -168,6 +173,7 @@ def _call_api(
     api_key: str,
     timeout: int,
     result_base: dict,
+    thinking_intensity: Optional[str] = None,
 ) -> str:
     """根据协议类型调用对应的 API"""
     try:
@@ -176,16 +182,16 @@ def _call_api(
         raise ImportError("缺少 requests 库。请运行: pip install requests")
 
     if protocol == "openai_chat":
-        return _call_openai_chat(base_url, model, task, system_prompt, api_key, timeout, requests, result_base)
+        return _call_openai_chat(base_url, model, task, system_prompt, api_key, timeout, requests, result_base, thinking_intensity)
     elif protocol == "anthropic":
-        return _call_anthropic(base_url, model, task, system_prompt, api_key, timeout, requests, result_base)
+        return _call_anthropic(base_url, model, task, system_prompt, api_key, timeout, requests, result_base, thinking_intensity)
     elif protocol == "gemini":
         return _call_gemini(base_url, model, task, system_prompt, api_key, timeout, requests, result_base)
     else:
         raise ValueError(f"不支持的协议: {protocol}。支持: openai_chat, anthropic, gemini")
 
 
-def _call_openai_chat(base_url, model, task, system_prompt, api_key, timeout, requests, result_base) -> str:
+def _call_openai_chat(base_url, model, task, system_prompt, api_key, timeout, requests, result_base, thinking_intensity=None) -> str:
     """调用 OpenAI Chat Completions 兼容接口（Grok、Claude、本地模型等）"""
     messages = []
     if system_prompt:
@@ -196,6 +202,12 @@ def _call_openai_chat(base_url, model, task, system_prompt, api_key, timeout, re
         "model": model,
         "messages": messages,
     }
+
+    # 思考强度：o1/o3/reasoning 系列用 reasoning_effort，DeepSeek-R1 系列也支持
+    _reasoning_models = ("o1", "o3", "o4", "deepseek-reasoner", "deepseek-r1", "qwq", "thinking")
+    model_lower = model.lower()
+    if thinking_intensity and any(k in model_lower for k in _reasoning_models):
+        payload["reasoning_effort"] = thinking_intensity
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -247,7 +259,7 @@ def _call_gemini(base_url, model, task, system_prompt, api_key, timeout, request
     return "".join(texts) or str(data)
 
 
-def _call_anthropic(base_url, model, task, system_prompt, api_key, timeout, requests, result_base) -> str:
+def _call_anthropic(base_url, model, task, system_prompt, api_key, timeout, requests, result_base, thinking_intensity=None) -> str:
     """调用 Anthropic Messages 兼容接口（适用于 Claude Code、火山引擎等）"""
     base_url = base_url.rstrip("/")
     if base_url.endswith("/messages"):
@@ -259,13 +271,25 @@ def _call_anthropic(base_url, model, task, system_prompt, api_key, timeout, requ
 
     payload = {
         "model": model,
-        "max_tokens": 4096,
+        "max_tokens": 16000,
         "messages": [
             {"role": "user", "content": task}
         ]
     }
     if system_prompt:
         payload["system"] = system_prompt
+
+    # 思考强度：Claude 3.7 thinking 参数
+    # budget_tokens 对应：low=1024, medium=4096, high=10000
+    _budget_map = {"low": 1024, "medium": 4096, "high": 10000}
+    model_lower = model.lower()
+    if thinking_intensity and thinking_intensity in _budget_map:
+        if "claude-3-7" in model_lower or "claude-3.7" in model_lower or "thinking" in model_lower:
+            payload["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": _budget_map[thinking_intensity],
+            }
+            payload["max_tokens"] = max(payload["max_tokens"], _budget_map[thinking_intensity] + 4096)
 
     headers = {
         "x-api-key": api_key,
