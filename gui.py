@@ -907,7 +907,7 @@ class ModelConnectGUI(ctk.CTk):
 
         ctk.CTkLabel(
             prompt_top_bar,
-            text="💡 提示：将下方内容发给 Agent，Agent 自动落盘 .agent_models/ 配置并永久绑定子代理",
+            text="💡 提示：发给主 Agent 后，主 Agent 自动落盘配置并开启【动态分析与主动委派助手】机制",
             font=ctk.CTkFont(size=11),
             text_color=("#6366F1", "#A5B4FC")
         ).pack(side=ctk.LEFT)
@@ -2181,7 +2181,27 @@ class ModelConnectGUI(ctk.CTk):
 
 ---
 
-### 三、请你在当前工作区执行以下三步初始化（自主完成，无需用户额外干预）：
+### 三、核心调度法则：动态任务分析与主动委派机制（【重要：强制遵守】）
+
+你作为当前工作区的**总协调指挥官（Chief Orchestrator Agent）**，切忌单打独斗包揽全部复杂工作。你必须在面对用户的每个任务需求时，主动进行**【任务专长分析与动态分派】**：
+
+1. **前置任务分析与专长匹配（Pre-Task Delegation Analysis）**：
+   在开始执行用户任务前，先在思考链中评估当前任务的属性：
+   - 🧠 **深度逻辑 / 复杂算法 / 系统架构权衡 / 高难推理** ➡️ **强制主动调用** 推理专长助手（利用高思考强度深度推演）；
+   - 💻 **大规模核心功能实现 / 模块重构 / 复杂代码补全 / 测试用例编写** ➡️ **强制主动调用** 编程专长助手；
+   - 📚 **长篇文档研读 / 全量日志与大代码库速查 / 多模态理解** ➡️ **强制主动调用** 全景长文助手；
+   - ⚡ **日常轻量问答 / 任务拆解分流 / 助手产出汇总与格式润色** ➡️ 由主指挥官（你）直接处理。
+
+2. **主动执行调用，拒绝闭门硬抗**：
+   - 一旦判断任务契合某助手模型的专长，**必须主动拆解子任务并执行命令行调用**：
+     `python .agent_models/delegator.py --model <助手标识> --task "<具体子任务提示词>"`
+   - 拿到助手模型的专业输出后，由你进行质量验收、校验并整合最终结果呈现给用户。
+   - 在回复中明确注明协同过程（例如：`[🤖 已委派【助手标识】完成深度代码生成与逻辑验证，以下为综合解答...]`）。
+   - **绝不允许忽视已接入的助手模型而自己盲目硬写！**
+
+---
+
+### 四、请你在当前工作区执行以下三步初始化（自主完成，无需用户额外干预）：
 
 #### 第一步：创建配置目录与模型注册表
 在当前工程根目录下创建 `.agent_models/config.json`，并将以下完整配置写入该文件：
@@ -2194,16 +2214,12 @@ class ModelConnectGUI(ctk.CTk):
 - 支持命令行调用：`python .agent_models/delegator.py --model <模型标识> --task "<任务提示词>"`，输出模型回复内容。
 - 当不传 `--model` 时，默认使用 `default_model`。
 - 支持 Python 模块直接导入：`from .agent_models.delegator import delegate_task`
-- 脚本自动读取同目录下的 `config.json`，自适配 `openai_chat`、`anthropic`、`gemini` 协议。
+- 脚本自动读取同目录下的 `config.json`，自适配 `openai_chat`、`anthropic`、`gemini` 协议，并在请求中注入对应的 `thinking_intensity` 参数。
 - 仅依赖 Python 内置库 `urllib.request` 或常规 `requests`，具备超时重试与友好的异常处理。
 
 #### 第三步：建立工作区规则与子代理永久生效绑定
-1. 根据当前开发工具类型（如 Antigravity IDE、Cursor、Claude Code 等），在工作区配置中登记上述子代理体系（例如写入 `.cursor/rules/agent_delegation.md`、`.cursorrules` 或在 Antigravity 中利用 `define_subagent` 声明子代理）。
-2. 将以下工作流准则刻入你的记忆：
-   - **重度推理 / 复杂算法 / 架构方案评估** ➡️ 自动调用/委派给对应的推理子代理；
-   - **大规模编码 / 模块重构 / 测试用例生成** ➡️ 自动调用/委派给对应的编码子代理；
-   - **超长上下文文档阅读 / 多模态设计图解析 / 全库检索** ➡️ 自动调用/委派给对应的长文子代理。
-   - 所有子代理均可通过本地调用器 `.agent_models/delegator.py` 执行外部模型委派。
+1. 根据当前开发工具类型（如 Antigravity IDE、Cursor、Claude Code 等），将上述**助手清单**以及**“动态任务分析与主动委派机制”**永久写入规则文件（例如写入 `.cursor/rules/agent_delegation.md`、`.cursorrules`、`CLAUDE.md` 或在 Antigravity 中声明 Subagents）。
+2. 将**“遇到专业任务必须先动态分析、主动委派给对应助手 Agent”**作为你的核心工作模式，永久驻留当前工作区。
 
 ---
 请现在就直接开始生成 `.agent_models/config.json` 和 `.agent_models/delegator.py`，配置完成后向我汇报已就绪的子代理清单与测试方式！
