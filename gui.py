@@ -43,6 +43,7 @@ PRESETS = {
         "url": "https://ark.cn-beijing.volces.com/api/plan/v3",
         "protocol": "openai_chat",
         "model": "deepseek-v4-pro",
+        "thinking": "high",
         "key": "",
         "models": ["deepseek-v4-pro", "deepseek-v4-flash", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite", "claude-3-5-sonnet"],
         "hint": "适配 Cursor / Trae / Roo / OpenClaw / Hermes 等。支持 DeepSeek 4.0 旗舰推理"
@@ -53,6 +54,7 @@ PRESETS = {
         "url": "https://ark.cn-beijing.volces.com/api/plan",
         "protocol": "anthropic",
         "model": "deepseek-v4-pro",
+        "thinking": "high",
         "key": "",
         "models": ["deepseek-v4-pro", "deepseek-v4-flash", "claude-3-5-sonnet", "doubao-seed-2.0-pro", "doubao-seed-2.0-lite"],
         "hint": "适配 Claude Code。专属 Base URL: https://ark.cn-beijing.volces.com/api/plan"
@@ -63,6 +65,7 @@ PRESETS = {
         "url": "https://api.deepseek.com",
         "protocol": "openai_chat",
         "model": "deepseek-reasoner",
+        "thinking": "high",
         "key": "",
         "models": ["deepseek-reasoner", "deepseek-chat"],
         "hint": "DeepSeek 官方推理大模型 (R1) 与通用对话模型 (V3)"
@@ -103,6 +106,7 @@ PRESETS = {
         "url": "https://api.siliconflow.cn/v1",
         "protocol": "openai_chat",
         "model": "deepseek-ai/DeepSeek-R1",
+        "thinking": "high",
         "key": "",
         "models": ["deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-V3", "Qwen/Qwen2.5-Coder-32B-Instruct", "meta-llama/Llama-3.3-70B-Instruct"],
         "hint": "高并发免运维的开源大模型云端托管服务"
@@ -114,6 +118,7 @@ PRESETS = {
         "url": "https://api.openai.com/v1",
         "protocol": "openai_chat",
         "model": "gpt-4o",
+        "thinking": "medium",
         "key": "",
         "models": ["gpt-4o", "gpt-4o-mini", "o3-mini", "o1", "o1-mini"],
         "hint": "OpenAI 官方最新旗舰多模态及前沿推理大模型"
@@ -124,6 +129,7 @@ PRESETS = {
         "url": "https://api.anthropic.com",
         "protocol": "anthropic",
         "model": "claude-3-7-sonnet-20250219",
+        "thinking": "high",
         "key": "",
         "models": ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"],
         "hint": "Anthropic 官方前沿编程与长篇推理大模型"
@@ -420,25 +426,37 @@ class ModelConnectGUI(ctk.CTk):
 
         self.lbl_version = ctk.CTkLabel(
             top_right_box,
-            text="v··· ",
-            font=ctk.CTkFont(size=10),
-            text_color=("gray60", "gray50"),
+            text="v···",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=("#475569", "#94A3B8"),
         )
-        self.lbl_version.pack(side=ctk.LEFT, padx=(10, 0))
+        self.lbl_version.pack(side=ctk.LEFT, padx=(12, 0))
 
         self.btn_update = ctk.CTkButton(
             top_right_box,
             text="🔄 检查更新",
-            width=90,
+            width=92,
             height=28,
-            font=ctk.CTkFont(size=11),
-            fg_color=("gray85", "#1E293B"),
-            hover_color=("gray75", "#334155"),
-            text_color=("gray40", "gray60"),
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color=("#F1F5F9", "#1E293B"),
+            hover_color=("#E2E8F0", "#334155"),
+            text_color=("#334155", "#E2E8F0"),
             corner_radius=6,
-            command=self._check_for_updates_threaded,
+            command=lambda: self._check_for_updates_threaded(manual=True),
         )
-        self.btn_update.pack(side=ctk.LEFT, padx=(4, 0))
+        self.btn_update.pack(side=ctk.LEFT, padx=(6, 0))
+
+        self.lbl_update_status = ctk.CTkLabel(
+            top_right_box,
+            text="● 已是最新版本",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color=("#16A34A", "#4ADE80"),
+            fg_color=("#DCFCE7", "#052E16"),
+            corner_radius=6,
+            padx=8,
+            pady=2
+        )
+        self.lbl_update_status.pack(side=ctk.LEFT, padx=(6, 0))
 
         # ─── 主体分栏 ──────────────────────────────────────────────────────────
         main_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -783,7 +801,7 @@ class ModelConnectGUI(ctk.CTk):
         self.btn_toggle_key.pack(side=ctk.RIGHT, padx=(6, 0))
 
         # 行 5: 思考强度
-        ctk.CTkLabel(form_grid, text="思考强度:", font=ctk.CTkFont(size=12), text_color=("gray50", "#94A3B8")).grid(row=4, column=0, sticky="w", pady=6)
+        ctk.CTkLabel(form_grid, text="思考强度:", font=ctk.CTkFont(size=12), text_color=("#475569", "#94A3B8")).grid(row=4, column=0, sticky="w", pady=6)
         thinking_box = ctk.CTkFrame(form_grid, fg_color="transparent")
         thinking_box.grid(row=4, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=6)
 
@@ -791,22 +809,25 @@ class ModelConnectGUI(ctk.CTk):
             thinking_box,
             values=["auto (默认)", "low", "medium", "high"],
             height=34,
-            font=ctk.CTkFont(size=12),
-            fg_color=("gray95", "#0C1322"),
-            button_color=("gray88", "#22314E"),
-            button_hover_color=("gray80", "#33476E"),
-            text_color=("gray30", "#94A3B8"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=("#F8FAFC", "#0C1322"),
+            button_color=("#E2E8F0", "#22314E"),
+            button_hover_color=("#CBD5E1", "#33476E"),
+            text_color=("#7C3AED", "#C4B5FD"),
             corner_radius=8,
+            command=self._on_thinking_changed,
         )
         self.cmb_thinking.set("auto (默认)")
         self.cmb_thinking.pack(side=ctk.LEFT)
 
-        ctk.CTkLabel(
+        self.lbl_thinking_desc = ctk.CTkLabel(
             thinking_box,
-            text="  仅对支持推理参数的模型生效 (o1/o3/R1/Claude 3.7 thinking)",
+            text="  ⚙️ [系统默认] 遵循模型默认行为 (自动适配 o1/o3/R1/Claude 3.7 thinking 等)",
             font=ctk.CTkFont(size=11),
-            text_color=("gray60", "gray50"),
-        ).pack(side=ctk.LEFT, padx=(8, 0))
+            text_color=("#64748B", "#94A3B8"),
+            anchor="w"
+        )
+        self.lbl_thinking_desc.pack(side=ctk.LEFT, padx=(8, 0))
 
         # 操作控制与连通测试状态栏
         action_bar = ctk.CTkFrame(config_card, fg_color="transparent")
@@ -1039,6 +1060,10 @@ class ModelConnectGUI(ctk.CTk):
                 self.ent_key.delete(0, "end")
                 self.ent_key.insert(0, p_data["key"])
 
+            thinking_val = p_data.get("thinking", "auto (默认)")
+            self.cmb_thinking.set(thinking_val)
+            self._on_thinking_changed(thinking_val)
+
             self.lbl_test_status.configure(
                 text=f"● 已载入预设: {p_data.get('hint','')[:40]}",
                 text_color=("#4F46E5", "#818CF8")
@@ -1050,6 +1075,30 @@ class ModelConnectGUI(ctk.CTk):
 
     def _on_combobox_selected(self, choice):
         self._on_model_modified()
+
+    def _on_thinking_changed(self, val):
+        if not hasattr(self, "lbl_thinking_desc"):
+            return
+        if val == "high":
+            self.lbl_thinking_desc.configure(
+                text="  🔥 [高思考强度] 启用深度链式思考，上限最高 (适合复杂架构/算法推理)",
+                text_color=("#7C3AED", "#C4B5FD")
+            )
+        elif val == "medium":
+            self.lbl_thinking_desc.configure(
+                text="  ⚖️ [中等思考强度] 兼顾思考深度与响应速度，日常开发推荐",
+                text_color=("#0284C7", "#7DD3FC")
+            )
+        elif val == "low":
+            self.lbl_thinking_desc.configure(
+                text="  ⚡ [轻量思考] 快速推理响应，低延迟低消耗",
+                text_color=("#16A34A", "#86EFAC")
+            )
+        else:
+            self.lbl_thinking_desc.configure(
+                text="  ⚙️ [系统默认] 遵循模型默认行为 (自动适配 o1/o3/R1/Claude 3.7 thinking 等)",
+                text_color=("#64748B", "#94A3B8")
+            )
 
     def _set_role_filter(self, role_name: str):
         self.active_role_filter = role_name
@@ -1402,6 +1451,21 @@ class ModelConnectGUI(ctk.CTk):
             model_lbl.pack(side=ctk.LEFT)
             model_lbl.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
 
+            thinking_intensity = p_cfg.get("thinking_intensity")
+            if thinking_intensity and not thinking_intensity.startswith("auto"):
+                thinking_badge = ctk.CTkLabel(
+                    sub_box,
+                    text=f"🧠{thinking_intensity}",
+                    font=ctk.CTkFont(size=9, weight="bold"),
+                    fg_color=("#EDE9FE", "#2E1065"),
+                    text_color=("#7C3AED", "#C4B5FD"),
+                    corner_radius=4,
+                    padx=4,
+                    pady=1
+                )
+                thinking_badge.pack(side=ctk.LEFT, padx=(5, 0))
+                thinking_badge.bind("<Button-1>", lambda e, pid=p_id: self._select_provider(pid))
+
             proto_text = "Claude" if proto == "anthropic" else ("Gemini" if proto == "gemini" else "OpenAI")
             proto_badge = ctk.CTkLabel(
                 sub_box,
@@ -1566,6 +1630,7 @@ class ModelConnectGUI(ctk.CTk):
 
         thinking_intensity = cfg.get("thinking_intensity")
         self.cmb_thinking.set(thinking_intensity if thinking_intensity else "auto (默认)")
+        self._on_thinking_changed(thinking_intensity if thinking_intensity else "auto (默认)")
 
         # 恢复状态提示或显示已知余额/测试结果
         b_res = self.model_balance_results.get(p_id)
@@ -1624,6 +1689,8 @@ class ModelConnectGUI(ctk.CTk):
         self.cmb_protocol.set("openai_chat")
         self.ent_key.delete(0, "end")
         self.cmb_model.set("deepseek-reasoner")
+        self.cmb_thinking.set("auto (默认)")
+        self._on_thinking_changed("auto (默认)")
         self.lbl_test_status.configure(text="● 已清空表单，请填写新配置或选择上方快速预设", text_color=("#64748B", "#94A3B8"))
         self._highlight_selected_card()
 
@@ -1872,8 +1939,11 @@ class ModelConnectGUI(ctk.CTk):
             if self.selected_provider_id and self.selected_provider_id in self.model_test_results:
                 r = self.model_test_results[self.selected_provider_id]
                 if r["status"] == "success":
+                    cur_p = self.current_state.get("providers", {}).get(self.selected_provider_id, {})
+                    ti = cur_p.get("thinking_intensity")
+                    ti_str = f" | 🧠思考: {ti}" if ti and not ti.startswith("auto") else ""
                     self.lbl_test_status.configure(
-                        text=f"✅ [{self.selected_provider_id}] 成功！耗时 {r['elapsed']}ms | 响应: {r['reply'][:30]}",
+                        text=f"✅ [{self.selected_provider_id}] 成功！耗时 {r['elapsed']}ms{ti_str} | 响应: {r['reply'][:30]}",
                         text_color="#10B981"
                     )
                 elif r["status"] == "failed":
@@ -2043,6 +2113,7 @@ class ModelConnectGUI(ctk.CTk):
             key = cfg.get("api_key", "")
             role_meta = detect_model_role(pid, name, model)
 
+            ti = cfg.get("thinking_intensity", "auto (默认)")
             models_info.append({
                 "id": pid,
                 "name": name,
@@ -2050,6 +2121,7 @@ class ModelConnectGUI(ctk.CTk):
                 "protocol": proto,
                 "base_url": url,
                 "api_key": key,
+                "thinking_intensity": ti,
                 "role_id": role_meta["role_id"],
                 "role_title": role_meta["role_title"],
                 "specialty": role_meta["specialty"],
@@ -2058,13 +2130,13 @@ class ModelConnectGUI(ctk.CTk):
 
             subagent_roles.append(
                 f"- **`{role_meta['role_id']}`** ({role_meta['role_title']})：\n"
-                f"  - 挂载模型: `{model}` (厂商: {name}, 协议: `{proto}`)\n"
+                f"  - 挂载模型: `{model}` (厂商: {name}, 协议: `{proto}`, 思考强度: `{ti}`)\n"
                 f"  - 专长职责: {role_meta['specialty']}\n"
                 f"  - 委派调用: `python .agent_models/delegator.py --model {pid} --task \"<子任务提示词>\"`"
             )
 
         table_lines = [
-            f"| `{m['id']}` | **{m['name']}** | `{m['model']}` | `{m['protocol']}` | {m['tag']} |"
+            f"| `{m['id']}` | **{m['name']}** | `{m['model']}` | `{m['protocol']}` | `{m['thinking_intensity']}` | {m['tag']} |"
             for m in models_info
         ]
         table_str = "\n".join(table_lines)
@@ -2080,6 +2152,7 @@ class ModelConnectGUI(ctk.CTk):
                     "protocol": m["protocol"],
                     "base_url": m["base_url"],
                     "api_key": m["api_key"],
+                    "thinking_intensity": m["thinking_intensity"],
                     "role_id": m["role_id"],
                     "role_title": m["role_title"],
                     "specialty": m["specialty"]
@@ -2096,8 +2169,8 @@ class ModelConnectGUI(ctk.CTk):
 
 ### 一、已选定的外部模型清单
 
-| 模型标识 | 显示名称 | 具体模型 | 协议 | 专长定位 |
-| :--- | :--- | :--- | :--- | :--- |
+| 模型标识 | 显示名称 | 具体模型 | 协议 | 思考强度 | 专长定位 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
 {table_str}
 
 ---
@@ -2148,6 +2221,9 @@ class ModelConnectGUI(ctk.CTk):
         clean_key = key or (self.ent_key.get().strip() if hasattr(self, "ent_key") else "")
         clean_model = model or (self.cmb_model.get().strip() if hasattr(self, "cmb_model") else "claude-3-5-sonnet")
         clean_proto = "anthropic" if protocol == "anthropic" else ("gemini" if protocol == "gemini" else "openai")
+        clean_thinking = self.cmb_thinking.get() if hasattr(self, "cmb_thinking") else "auto"
+        if clean_thinking.startswith("auto"):
+            clean_thinking = "auto"
 
         code_text = f'''"""
 通用大模型调用工具 - {clean_name} ({clean_model})
@@ -2155,7 +2231,7 @@ class ModelConnectGUI(ctk.CTk):
 
 特点:
 1. 完全自包含独立文件：无任何本地环境路径依赖，只要有 requests 即可在任何项目或服务器直接运行。
-2. 已预置测试通过的 Base URL、API Key 与推荐模型参数。
+2. 已预置测试通过的 Base URL、API Key、思考强度 ({clean_thinking}) 与推荐模型参数。
 3. 针对数据库/批处理场景：提供单次调用 call_llm 与数据库列表批量处理示例。
 """
 
@@ -2170,7 +2246,8 @@ CONFIG = {{
     "base_url": "{clean_url}",
     "api_key": "{clean_key}",
     "model": "{clean_model}",
-    "protocol": "{clean_proto}"
+    "protocol": "{clean_proto}",
+    "thinking_intensity": "{clean_thinking}"
 }}
 
 
@@ -2336,47 +2413,88 @@ if __name__ == "__main__":
             "指向此地址直接使用已配置的模型。"
         )
 
-    def _check_for_updates_threaded(self):
+    def _check_for_updates_threaded(self, manual=True):
         self.btn_update.configure(text="⏳ 检查中...", state="disabled")
-        threading.Thread(target=self._check_for_updates, daemon=True).start()
+        self.lbl_update_status.configure(
+            text="⏳ 正在检测...",
+            fg_color=("#F1F5F9", "#1E293B"),
+            text_color=("#64748B", "#94A3B8")
+        )
+        threading.Thread(target=self._check_for_updates, args=(manual,), daemon=True).start()
 
-    def _check_for_updates(self):
+    def _check_for_updates(self, manual=True):
         info = check_update()
         self._update_info = info
-        self.after(0, lambda: self._on_update_checked(info))
+        self.after(0, lambda: self._on_update_checked(info, manual))
 
-    def _on_update_checked(self, info):
+    def _on_update_checked(self, info, manual=True):
         self.btn_update.configure(state="normal")
-        if info.get("error"):
-            self.btn_update.configure(text="🔄 检查更新")
-            self.lbl_version.configure(text=f"v{info.get('local_sha', '?')} ")
-            return
-
         local_sha = info.get("local_sha", "?")
         remote_sha = info.get("remote_sha", "?")
-        self.lbl_version.configure(text=f"v{local_sha} ")
+        self.lbl_version.configure(text=f"v{local_sha}")
+
+        if info.get("error"):
+            self.btn_update.configure(
+                text="🔄 检查更新",
+                fg_color=("#F1F5F9", "#1E293B"),
+                text_color=("#334155", "#E2E8F0")
+            )
+            self.lbl_update_status.configure(
+                text="⚠️ 检查异常",
+                fg_color=("#FEE2E2", "#450A0A"),
+                text_color=("#DC2626", "#FCA5A5")
+            )
+            if manual:
+                messagebox.showwarning(
+                    "检查更新",
+                    f"无法连接到 GitHub 检查更新：\n{info.get('error')}\n\n请检查网络连接或直接访问 GitHub 仓库。"
+                )
+            return
 
         if info.get("has_update"):
+            self.lbl_update_status.configure(
+                text=f"🔴 发现新版本 v{remote_sha}",
+                fg_color=("#FEF3C7", "#451A03"),
+                text_color=("#D97706", "#FDE68A")
+            )
             self.btn_update.configure(
-                text="⬆️ 有新版本",
+                text="⬆️ 立即更新",
                 fg_color="#F59E0B",
                 hover_color="#D97706",
                 text_color="#FFFFFF",
             )
             msg = info.get("remote_message", "")
             date = info.get("remote_date", "")[:10]
-            if messagebox.askyesno(
-                "发现新版本",
-                f"当前版本: {local_sha}\n最新版本: {remote_sha}\n\n{msg}\n({date})\n\n是否立即更新？"
-            ):
-                self._do_update_threaded()
+            if manual:
+                if messagebox.askyesno(
+                    "发现新版本",
+                    f"🚀 检测到 GitHub 官方仓库有新版本！\n\n"
+                    f"当前本地版本: v{local_sha}\n"
+                    f"远程最新版本: v{remote_sha} ({date})\n\n"
+                    f"更新说明: {msg}\n\n"
+                    f"是否立即自动拉取并更新？"
+                ):
+                    self._do_update_threaded()
         else:
-            self.btn_update.configure(
-                text="✅ 已是最新",
-                fg_color=("gray85", "#1E293B"),
-                text_color=("gray40", "gray60"),
+            self.lbl_update_status.configure(
+                text="● 已是最新版本",
+                fg_color=("#DCFCE7", "#052E16"),
+                text_color=("#16A34A", "#4ADE80")
             )
-            self.after(4000, lambda: self.btn_update.configure(text="🔄 检查更新"))
+            self.btn_update.configure(
+                text="🔄 检查更新",
+                fg_color=("#F1F5F9", "#1E293B"),
+                hover_color=("#E2E8F0", "#334155"),
+                text_color=("#334155", "#E2E8F0")
+            )
+            if manual:
+                messagebox.showinfo(
+                    "检查更新",
+                    f"🎉 当前已是最高版本（最新版本）！\n\n"
+                    f"当前本地版本: v{local_sha}\n"
+                    f"GitHub 最新版本: v{remote_sha}\n\n"
+                    f"本地代码已与 GitHub 仓库 (star132-bot/APIson) 保持最新，无需更新。"
+                )
 
     def _do_update_threaded(self):
         self.btn_update.configure(text="⬇️ 更新中...", state="disabled")
@@ -2388,23 +2506,19 @@ if __name__ == "__main__":
 
     def _on_update_done(self, result):
         self.btn_update.configure(state="normal", text="🔄 检查更新",
-                                   fg_color=("gray85", "#1E293B"), text_color=("gray40", "gray60"))
+                                   fg_color=("#F1F5F9", "#1E293B"), text_color=("#334155", "#E2E8F0"))
         if result.get("success"):
             messagebox.showinfo(
                 "更新成功",
                 "✅ 已更新到最新版本！\n\n请重启应用以使新版本生效。\n\n" + result.get("output", "")[:300]
             )
+            self._check_for_updates_threaded(manual=False)
         else:
             messagebox.showerror("更新失败", result.get("error", "未知错误"))
 
     def _auto_check_version(self):
-        """启动时后台异步获取版本号显示"""
-        def _run():
-            from tools.updater import get_local_version
-            local = get_local_version()
-            sha = (local or "")[:7] or "dev"
-            self.after(0, lambda: self.lbl_version.configure(text=f"v{sha} "))
-        threading.Thread(target=_run, daemon=True).start()
+        """启动时后台异步执行一次自动检测与状态渲染"""
+        self._check_for_updates_threaded(manual=False)
 
 
 def launch():
