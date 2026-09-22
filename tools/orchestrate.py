@@ -71,20 +71,32 @@ def delegate_tasks(tasks: list[dict[str, Any]], max_workers: int = 4) -> dict:
 
 
 def _parse_review(text: str) -> dict:
-    candidate = text.strip()
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", candidate, re.S)
-    if fenced:
-        candidate = fenced.group(1)
-    data = None
+    original = text.strip()
+    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", original, re.S)
+    candidates = [fenced.group(1), original] if fenced else [original]
     decoder = json.JSONDecoder()
-    for match in re.finditer(r"\{", candidate):
+    data = None
+    while candidates and data is None:
+        candidate = candidates.pop(0).strip()
         try:
-            decoded, _ = decoder.raw_decode(candidate[match.start():])
+            decoded = json.loads(candidate)
+            if isinstance(decoded, dict) and "score" in decoded:
+                data = decoded
+                break
+            if isinstance(decoded, str) and decoded != candidate:
+                candidates.append(decoded)
         except (json.JSONDecodeError, TypeError):
-            continue
-        if isinstance(decoded, dict) and "score" in decoded:
-            data = decoded
-            break
+            pass
+        for match in re.finditer(r"\{", candidate):
+            try:
+                decoded, _ = decoder.raw_decode(candidate[match.start():])
+            except (json.JSONDecodeError, TypeError):
+                continue
+            if isinstance(decoded, dict) and "score" in decoded:
+                data = decoded
+                break
+            if isinstance(decoded, str) and decoded != candidate:
+                candidates.append(decoded)
     if data is None:
         score_match = re.search(r"[\"']?(?:score|评分)[\"']?\s*[:：]\s*(\d{1,3})", text, re.I)
         return {"score": min(int(score_match.group(1)), 100) if score_match else None,
