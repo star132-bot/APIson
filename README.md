@@ -83,16 +83,17 @@ APIson/
 
 ### Codex Desktop / Codex CLI 一键安装
 
-在 GUI 的 **🧩 MCP 插件配置** 页点击 **⚡ 安装到 Codex**。APIson 会：
+在 GUI 的 **🧩 MCP 插件配置** 页点击 **⚡ 一键安装并检测**。不需要复制或编辑配置文件，APIson 会：
 
 1. 备份 Codex 配置（macOS/Linux 为 `~/.codex/config.toml`，Windows 为 `%USERPROFILE%\.codex\config.toml`）；
 2. 写入 `agent-model-connect` MCP Server 配置；
 3. 自动选择当前系统的虚拟环境 Python：Windows 使用 `.venv\Scripts\python.exe`，macOS/Linux 使用 `.venv/bin/python`；
-4. 提示完全重启 Codex，使 `delegate_task` 工具生效。
+4. 自动启动 MCP Server，并检查 `delegate_task`、`delegate_tasks`、`review_results` 是否全部注册；
+5. 显示安装和自检结果。回到 Codex 后继续发送消息即可重新加载工具；如果仍未出现，完全退出并重新打开 Codex，原聊天记录不会丢失。
 
 APIson 会被设置为必需 MCP。Codex 创建任务时会等待它完成初始化，避免服务器启动稍慢时工具被静默跳过；外部模型工具最长允许执行 300 秒。
 
-点击 **🧪 测试 MCP** 可以检查 MCP Server 和工具注册，不会调用外部模型，也不消耗 API 额度。Codex 登录账号切换不会删除这份本机配置。
+安装按钮自带 MCP 自检，不会调用外部模型，也不消耗 API 额度。独立的 **🧪 测试 MCP** 按钮用于后续诊断。Codex 登录账号切换不会删除这份本机配置。
 
 APIson 同时提供三个 MCP 工具：
 

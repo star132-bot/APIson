@@ -1012,13 +1012,13 @@ class ModelConnectGUI(ctk.CTk):
         )
         btn_test_mcp.pack(side=ctk.RIGHT, padx=(0, 6))
 
-        btn_install_codex = ctk.CTkButton(
-            mcp_top_bar, text="⚡ 安装到 Codex", width=125, height=30,
+        self.btn_install_codex = ctk.CTkButton(
+            mcp_top_bar, text="⚡ 一键安装并检测", width=145, height=30,
             font=ctk.CTkFont(size=11, weight="bold"),
             fg_color="#7C3AED", hover_color="#6D28D9", corner_radius=6,
             command=self._install_codex_mcp,
         )
-        btn_install_codex.pack(side=ctk.RIGHT, padx=(0, 6))
+        self.btn_install_codex.pack(side=ctk.RIGHT, padx=(0, 6))
 
         self.txt_mcp = ctk.CTkTextbox(
             tab_mcp,
@@ -2354,18 +2354,50 @@ if __name__ == "__main__":
         self.txt_mcp.insert("1.0", json_str)
 
     def _install_codex_mcp(self):
-        try:
-            result = install_codex_mcp()
-            backup = result.get("backup")
-            backup_text = f"\n备份文件：{backup}" if backup else ""
-            messagebox.showinfo(
-                "Codex MCP 安装成功",
-                f"✅ {result['message']}\n\n配置文件：{result['config']}"
-                f"\nPython：{result['python']}"
-                f"{backup_text}\n\n切换 Codex 账号不会删除此本机配置。",
+        """Install the Codex config and verify all APIson tools in one click."""
+        self.btn_install_codex.configure(text="⏳ 安装并检测中...", state="disabled")
+        self.status_bar.configure(text="⏳ 正在安装 APIson MCP 并验证三个工具...")
+
+        def _run():
+            try:
+                installed = install_codex_mcp()
+                tested = test_mcp_server()
+                self.after(0, lambda: self._show_codex_mcp_install(installed, tested))
+            except Exception as exc:
+                error = str(exc)
+                self.after(0, lambda: self._show_codex_mcp_install_error(error))
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _show_codex_mcp_install(self, installed, tested):
+        self.btn_install_codex.configure(text="⚡ 一键安装并检测", state="normal")
+        if not tested.get("success"):
+            self.status_bar.configure(text="⚠️ Codex 配置已写入，但 MCP 自检失败")
+            messagebox.showerror(
+                "Codex MCP 自检失败",
+                "配置已经写入，但 MCP Server 没有完整返回三个工具。\n\n"
+                + (tested.get("error") or tested.get("message") or "未知错误"),
             )
-        except Exception as exc:
-            messagebox.showerror("Codex MCP 安装失败", str(exc))
+            return
+
+        backup = installed.get("backup")
+        backup_text = f"\n备份文件：{backup}" if backup else ""
+        tools = ", ".join(tested.get("tools", []))
+        self.status_bar.configure(text="✅ Codex MCP 已安装 · 三个子代理工具自检通过")
+        messagebox.showinfo(
+            "Codex MCP 一键安装完成",
+            "✅ Codex 配置已自动写入\n"
+            f"✅ 工具自检通过：{tools}\n\n"
+            f"配置文件：{installed['config']}\nPython：{installed['python']}"
+            f"{backup_text}\n\n"
+            "回到 Codex 后继续发送消息即可重新加载工具；如果仍未出现，完全退出并重新打开 Codex。"
+            "聊天记录和本机配置都会保留，切换账号也不需要重新安装。",
+        )
+
+    def _show_codex_mcp_install_error(self, error):
+        self.btn_install_codex.configure(text="⚡ 一键安装并检测", state="normal")
+        self.status_bar.configure(text="❌ Codex MCP 一键安装失败")
+        messagebox.showerror("Codex MCP 安装失败", error)
 
     def _test_codex_mcp_threaded(self):
         self.status_bar.configure(text="⏳ 正在测试 APIson MCP Server...")
