@@ -28,20 +28,18 @@ def _latest_changelog_section(text: str) -> str:
 
 
 def get_local_version() -> Optional[str]:
-    """读取本地 VERSION 文件中的 commit SHA，若无则通过 git 获取"""
-    if _VERSION_FILE.exists():
-        return _VERSION_FILE.read_text(encoding="utf-8").strip()
+    """Use Git HEAD in a checkout; VERSION is only a packaged-build fallback."""
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=_ROOT, capture_output=True, text=True, timeout=5,
         )
         if result.returncode == 0:
-            sha = result.stdout.strip()
-            _VERSION_FILE.write_text(sha, encoding="utf-8")
-            return sha
+            return result.stdout.strip()
     except Exception:
         pass
+    if _VERSION_FILE.exists():
+        return _VERSION_FILE.read_text(encoding="utf-8").strip()
     return None
 
 
