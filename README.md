@@ -90,6 +90,8 @@ APIson/
 3. 自动选择当前系统的虚拟环境 Python：Windows 使用 `.venv\Scripts\python.exe`，macOS/Linux 使用 `.venv/bin/python`；
 4. 提示完全重启 Codex，使 `delegate_task` 工具生效。
 
+APIson 会被设置为必需 MCP。Codex 创建任务时会等待它完成初始化，避免服务器启动稍慢时工具被静默跳过；外部模型工具最长允许执行 300 秒。
+
 点击 **🧪 测试 MCP** 可以检查 MCP Server 和工具注册，不会调用外部模型，也不消耗 API 额度。Codex 登录账号切换不会删除这份本机配置。
 
 APIson 同时提供三个 MCP 工具：

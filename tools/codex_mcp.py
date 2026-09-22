@@ -39,6 +39,8 @@ def codex_toml_block(python: str | Path | None = None, script: str | Path | None
         f"command = {python_path}\n"
         f"args = [{script_path}]\n"
         "startup_timeout_sec = 30\n"
+        "tool_timeout_sec = 300\n"
+        "required = true\n"
     )
 
 
@@ -84,7 +86,7 @@ def install_codex_mcp() -> dict:
         "backup": str(backup) if backup else "",
         "platform": sys.platform,
         "python": str(preferred_python()),
-        "message": "Codex MCP 配置已写入，请完全重启 Codex 后使用。",
+        "message": "Codex MCP 已设为必需服务器，请在 Codex 的 MCP 设置中重新启动服务器。",
     }
 
 
