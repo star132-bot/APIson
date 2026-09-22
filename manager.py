@@ -310,7 +310,8 @@ def cmd_balance(args):
 # ─── 命令：mcp-config ─────────────────────────────────────────────────────────
 def cmd_mcp_config(args):
     mcp_path = str(_ROOT / "mcp_server.py")
-    python_exe = sys.executable
+    from tools.codex_mcp import preferred_python
+    python_exe = str(preferred_python())
     print(f"\n{c('=== MCP (Model Context Protocol) 接入配置 ===', BOLD)}\n")
     cfg = {
         "mcpServers": {

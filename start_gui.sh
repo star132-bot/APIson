@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# 启动 APIson 桌面可视化管理面板
+# 启动 APIson 桌面可视化管理面板；首次运行自动创建环境并安装依赖
 cd "$(dirname "$0")"
-if [ -f "./.venv/bin/python" ]; then
-    exec ./.venv/bin/python gui.py "$@"
-elif command -v python3 >/dev/null 2>&1; then
-    exec python3 gui.py "$@"
+if command -v python3 >/dev/null 2>&1; then
+    exec python3 bootstrap.py gui "$@"
+elif command -v python >/dev/null 2>&1; then
+    exec python bootstrap.py gui "$@"
 else
-    exec python gui.py "$@"
+    echo "APIson 需要 Python 3.10 或更高版本。" >&2
+    exit 1
 fi

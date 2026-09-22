@@ -23,13 +23,17 @@ def codex_config_path() -> Path:
 
 
 def preferred_python() -> Path:
-    candidates = [ROOT / ".venv" / "bin" / "python", ROOT / ".venv" / "Scripts" / "python.exe"]
+    if os.name == "nt":
+        candidates = [ROOT / ".venv" / "Scripts" / "python.exe"]
+    else:
+        candidates = [ROOT / ".venv" / "bin" / "python"]
     return next((p for p in candidates if p.exists()), Path(sys.executable))
 
 
-def codex_toml_block() -> str:
-    python_path = json.dumps(str(preferred_python()))
-    script_path = json.dumps(str(MCP_SCRIPT))
+def codex_toml_block(python: str | Path | None = None, script: str | Path | None = None) -> str:
+    """Build valid TOML for POSIX and Windows paths."""
+    python_path = json.dumps(str(python or preferred_python()))
+    script_path = json.dumps(str(script or MCP_SCRIPT))
     return (
         f"[mcp_servers.{SERVER_NAME}]\n"
         f"command = {python_path}\n"
@@ -41,12 +45,16 @@ def codex_toml_block() -> str:
 def get_codex_mcp_status() -> dict:
     config = codex_config_path()
     if not config.exists():
-        return {"installed": False, "config": str(config), "message": "未找到 Codex 配置文件"}
+        return {"installed": False, "config": str(config), "platform": sys.platform,
+                "message": "未找到 Codex 配置文件"}
     text = config.read_text(encoding="utf-8")
     match = re.search(rf"(?m)^\[mcp_servers\.{re.escape(SERVER_NAME)}\]\s*$", text)
     return {
         "installed": bool(match),
         "config": str(config),
+        "platform": sys.platform,
+        "python": str(preferred_python()),
+        "python_exists": preferred_python().exists(),
         "message": "已安装" if match else "尚未安装",
     }
 
@@ -57,7 +65,7 @@ def install_codex_mcp() -> dict:
     current = config.read_text(encoding="utf-8") if config.exists() else ""
     backup = None
     if config.exists():
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         backup = config.with_name(f"config.toml.apison-backup-{stamp}")
         shutil.copy2(config, backup)
 
@@ -74,6 +82,8 @@ def install_codex_mcp() -> dict:
         "success": True,
         "config": str(config),
         "backup": str(backup) if backup else "",
+        "platform": sys.platform,
+        "python": str(preferred_python()),
         "message": "Codex MCP 配置已写入，请完全重启 Codex 后使用。",
     }
 

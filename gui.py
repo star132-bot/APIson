@@ -26,7 +26,7 @@ if str(_ROOT) not in sys.path:
 
 from tools.delegate import delegate_task, _load_state
 from tools.updater import check_update, do_update
-from tools.codex_mcp import get_codex_mcp_status, install_codex_mcp, test_mcp_server
+from tools.codex_mcp import get_codex_mcp_status, install_codex_mcp, preferred_python, test_mcp_server
 
 _STATE_FILE = _ROOT / "models" / "state.json"
 _PROVIDERS_DIR = _ROOT / "models" / "providers"
@@ -2338,7 +2338,7 @@ if __name__ == "__main__":
         mcp_cfg = {
             "mcpServers": {
                 "agent-model-connect": {
-                    "command": "python",
+                    "command": str(preferred_python()),
                     "args": [
                         mcp_script
                     ]
@@ -2357,6 +2357,7 @@ if __name__ == "__main__":
             messagebox.showinfo(
                 "Codex MCP 安装成功",
                 f"✅ {result['message']}\n\n配置文件：{result['config']}"
+                f"\nPython：{result['python']}"
                 f"{backup_text}\n\n切换 Codex 账号不会删除此本机配置。",
             )
         except Exception as exc:

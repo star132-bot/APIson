@@ -11,19 +11,21 @@
 支持 macOS、Windows 及 Linux 跨平台运行：
 
 ### 启动方式：
-1. **macOS / Linux 一键启动**：
+1. **macOS / Linux 一键启动**（首次运行自动创建 `.venv` 并安装依赖）：
    ```bash
    chmod +x start_gui.sh
    ./start_gui.sh
    ```
-2. **Windows 一键启动**：
-   双击根目录下的 `启动模型管理器.bat`
+2. **Windows 一键启动**（首次运行自动创建 `.venv` 并安装依赖）：
+   双击根目录下的 `启动模型管理器.bat` 或 `start_gui.bat`。
+   启动本地网关使用 `start_gateway.bat`。
 3. **命令行通用启动**：
    ```bash
-   python manager.py gui
-   # 或
-   python gui.py
+   python bootstrap.py gui
+   python bootstrap.py gateway
    ```
+
+运行要求：Python 3.10 或更高版本。Windows 同时支持 `py -3` 和 `python` 命令。虚拟环境不能跨操作系统复制；APIson 会在每台电脑上自动创建当前系统适用的 `.venv`。
 
 ### 核心亮点：
 - ⚡ **15+ 主流厂商官方预设**：一键载入火山方舟（OpenAI / Anthropic 双协议）、DeepSeek、阿里百炼、智谱、月之暗面 Kimi、硅基流动、OpenAI、Anthropic、Google Gemini、Grok、OpenRouter、Groq、本地 Ollama / LM Studio 等。
@@ -54,6 +56,9 @@ APIson/
 ├── gateway.py                  # 本地 OpenAI 兼容网关 (HTTP 代理服务)
 ├── start_gui.sh                # macOS/Linux GUI 启动脚本
 ├── start_gateway.sh            # 本地网关启动脚本
+├── start_gui.bat               # Windows GUI 启动脚本
+├── start_gateway.bat           # Windows 网关启动脚本
+├── bootstrap.py                # 跨平台环境准备和统一启动器
 └── requirements.txt            # Python 依赖清单
 ```
 
@@ -65,9 +70,9 @@ APIson/
 
 在 GUI 的 **🧩 MCP 插件配置** 页点击 **⚡ 安装到 Codex**。APIson 会：
 
-1. 备份 `~/.codex/config.toml`；
+1. 备份 Codex 配置（macOS/Linux 为 `~/.codex/config.toml`，Windows 为 `%USERPROFILE%\.codex\config.toml`）；
 2. 写入 `agent-model-connect` MCP Server 配置；
-3. 使用项目虚拟环境中的 Python 启动 MCP Server；
+3. 自动选择当前系统的虚拟环境 Python：Windows 使用 `.venv\Scripts\python.exe`，macOS/Linux 使用 `.venv/bin/python`；
 4. 提示完全重启 Codex，使 `delegate_task` 工具生效。
 
 点击 **🧪 测试 MCP** 可以检查 MCP Server 和工具注册，不会调用外部模型，也不消耗 API 额度。Codex 登录账号切换不会删除这份本机配置。

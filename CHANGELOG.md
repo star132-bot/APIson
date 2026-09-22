@@ -6,6 +6,9 @@
 
 ### 新增
 
+- 新增跨平台 `bootstrap.py`，首次运行自动创建虚拟环境并安装依赖。
+- 新增 Windows 的 `start_gui.bat` 和 `start_gateway.bat` 启动入口。
+- Codex MCP 安装和配置导出会按 Windows、macOS、Linux 自动选择正确的 Python 路径。
 - 新增 `delegate_tasks`，支持最多 16 个子任务、8 个工作线程并发委派。
 - 新增 `review_results`，支持独立评审 Agent 并发评分、列出问题和修改建议。
 - 支持一键将 APIson MCP Server 安装到 Codex 的本机全局配置。
