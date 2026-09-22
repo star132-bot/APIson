@@ -11,9 +11,20 @@ _REPO_OWNER = "star132-bot"
 _REPO_NAME = "APIson"
 _BRANCH = "main"
 _GITHUB_API = f"https://api.github.com/repos/{_REPO_OWNER}/{_REPO_NAME}/commits/{_BRANCH}"
+_REMOTE_CHANGELOG = f"https://raw.githubusercontent.com/{_REPO_OWNER}/{_REPO_NAME}/{_BRANCH}/CHANGELOG.md"
 
 _ROOT = Path(__file__).parent.parent
 _VERSION_FILE = _ROOT / "VERSION"
+
+
+def _latest_changelog_section(text: str) -> str:
+    """Return the newest version section instead of showing the entire history."""
+    lines = text.strip().splitlines()
+    start = next((i for i, line in enumerate(lines) if line.startswith("## ")), None)
+    if start is None:
+        return text.strip()
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+    return "\n".join(lines[start:end]).strip()
 
 
 def get_local_version() -> Optional[str]:
@@ -53,8 +64,15 @@ def get_remote_version() -> dict:
         commit_info = data.get("commit", {})
         message = commit_info.get("message", "").split("\n")[0]
         date = commit_info.get("committer", {}).get("date", "")
+        changelog = ""
+        try:
+            notes_resp = requests.get(_REMOTE_CHANGELOG, timeout=8)
+            if notes_resp.status_code == 200:
+                changelog = _latest_changelog_section(notes_resp.text)
+        except Exception:
+            pass
         return {"success": True, "sha": full_sha[:7], "full_sha": full_sha,
-                "message": message, "date": date}
+                "message": message, "date": date, "changelog": changelog}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -74,6 +92,7 @@ def check_update() -> dict:
         "remote_sha": remote.get("sha", ""),
         "remote_message": remote.get("message", ""),
         "remote_date": remote.get("date", ""),
+        "release_notes": remote.get("changelog", "") or remote.get("message", ""),
         "full_remote_sha": full_sha,
         "error": None,
     }
@@ -102,7 +121,11 @@ def do_update() -> dict:
                     _VERSION_FILE.write_text(sha_result.stdout.strip(), encoding="utf-8")
             except Exception:
                 pass
-            return {"success": True, "output": output}
+            notes = ""
+            changelog_file = _ROOT / "CHANGELOG.md"
+            if changelog_file.exists():
+                notes = _latest_changelog_section(changelog_file.read_text(encoding="utf-8"))
+            return {"success": True, "output": output, "release_notes": notes}
         else:
             return {"success": False, "error": output or "git pull 失败"}
     except FileNotFoundError:

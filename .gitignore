@@ -6,6 +6,7 @@ __pycache__/
 gui_backup_tkinter.py
 *.log
 models/state.json
+logs/
 .idea/
 .vscode/
 .venv/

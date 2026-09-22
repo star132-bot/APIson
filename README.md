@@ -61,6 +61,19 @@ APIson/
 
 ## 🚀 4 种调用与集成方式
 
+### Codex Desktop / Codex CLI 一键安装
+
+在 GUI 的 **🧩 MCP 插件配置** 页点击 **⚡ 安装到 Codex**。APIson 会：
+
+1. 备份 `~/.codex/config.toml`；
+2. 写入 `agent-model-connect` MCP Server 配置；
+3. 使用项目虚拟环境中的 Python 启动 MCP Server；
+4. 提示完全重启 Codex，使 `delegate_task` 工具生效。
+
+点击 **🧪 测试 MCP** 可以检查 MCP Server 和工具注册，不会调用外部模型，也不消耗 API 额度。Codex 登录账号切换不会删除这份本机配置。
+
+提示词只定义 Agent 何时调用 `delegate_task`，不能代替 MCP 安装。只有实际出现 `delegate_task` 工具调用并返回 `success: true`，才表示发生了委派。每次调用的模型、耗时、用量及错误会记录到本机 `logs/delegations.jsonl`，任务正文与模型回复不会写入日志。
+
 ### 方式 1：标准 MCP 协议接入（Cursor / Antigravity / Windsurf 等）
 
 运行命令获取当前环境的 MCP 配置：

@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -17,6 +18,27 @@ _TOOLS_DIR = Path(__file__).parent
 _AGENT_DIR = _TOOLS_DIR.parent
 _STATE_FILE = _AGENT_DIR / "models" / "state.json"
 _PROVIDERS_DIR = _AGENT_DIR / "models" / "providers"
+_LOG_FILE = _AGENT_DIR / "logs" / "delegations.jsonl"
+
+
+def _write_call_log(result: dict, task: str) -> None:
+    """Record verifiable usage metadata without storing task or response content."""
+    try:
+        _LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "success": result.get("success", False),
+            "provider": result.get("provider", ""),
+            "model": result.get("model", ""),
+            "task_chars": len(task),
+            "usage": result.get("usage", {}),
+            "elapsed_ms": result.get("elapsed_ms", 0),
+            "error": result.get("error", "")[:500],
+        }
+        with _LOG_FILE.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 
 def _load_state() -> dict:
@@ -156,11 +178,13 @@ def delegate_task(
 
         elapsed = int((time.monotonic() - start) * 1000)
         result_base.update({"success": True, "result": content, "elapsed_ms": elapsed})
+        _write_call_log(result_base, task)
         return result_base
 
     except Exception as e:
         elapsed = int((time.monotonic() - start) * 1000)
         result_base.update({"success": False, "error": str(e), "elapsed_ms": elapsed})
+        _write_call_log(result_base, task)
         return result_base
 
 

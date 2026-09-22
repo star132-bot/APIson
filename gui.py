@@ -26,6 +26,7 @@ if str(_ROOT) not in sys.path:
 
 from tools.delegate import delegate_task, _load_state
 from tools.updater import check_update, do_update
+from tools.codex_mcp import get_codex_mcp_status, install_codex_mcp, test_mcp_server
 
 _STATE_FILE = _ROOT / "models" / "state.json"
 _PROVIDERS_DIR = _ROOT / "models" / "providers"
@@ -981,7 +982,7 @@ class ModelConnectGUI(ctk.CTk):
 
         ctk.CTkLabel(
             mcp_top_bar,
-            text="💡 提示：供 Cursor / Antigravity / Windsurf 原生 MCP 服务器挂载的配置代码",
+            text="💡 MCP 必须先安装；提示词只负责告诉 Agent 何时调用",
             font=ctk.CTkFont(size=11),
             text_color=("#64748B", "#94A3B8")
         ).pack(side=ctk.LEFT)
@@ -998,6 +999,22 @@ class ModelConnectGUI(ctk.CTk):
             command=lambda: self._copy_text(self.txt_mcp.get("1.0", "end-1c"), "MCP 配置已复制")
         )
         btn_copy_m.pack(side=ctk.RIGHT)
+
+        btn_test_mcp = ctk.CTkButton(
+            mcp_top_bar, text="🧪 测试 MCP", width=105, height=30,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#475569", hover_color="#334155", corner_radius=6,
+            command=self._test_codex_mcp_threaded,
+        )
+        btn_test_mcp.pack(side=ctk.RIGHT, padx=(0, 6))
+
+        btn_install_codex = ctk.CTkButton(
+            mcp_top_bar, text="⚡ 安装到 Codex", width=125, height=30,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#7C3AED", hover_color="#6D28D9", corner_radius=6,
+            command=self._install_codex_mcp,
+        )
+        btn_install_codex.pack(side=ctk.RIGHT, padx=(0, 6))
 
         self.txt_mcp = ctk.CTkTextbox(
             tab_mcp,
@@ -2110,7 +2127,6 @@ class ModelConnectGUI(ctk.CTk):
             model = cfg.get("model", "default")
             proto = cfg.get("protocol", "openai_chat")
             url = cfg.get("base_url", "")
-            key = cfg.get("api_key", "")
             role_meta = detect_model_role(pid, name, model)
 
             ti = cfg.get("thinking_intensity", "auto (默认)")
@@ -2120,7 +2136,6 @@ class ModelConnectGUI(ctk.CTk):
                 "model": model,
                 "protocol": proto,
                 "base_url": url,
-                "api_key": key,
                 "thinking_intensity": ti,
                 "role_id": role_meta["role_id"],
                 "role_title": role_meta["role_title"],
@@ -2132,7 +2147,7 @@ class ModelConnectGUI(ctk.CTk):
                 f"- **`{role_meta['role_id']}`** ({role_meta['role_title']})：\n"
                 f"  - 挂载模型: `{model}` (厂商: {name}, 协议: `{proto}`, 思考强度: `{ti}`)\n"
                 f"  - 专长职责: {role_meta['specialty']}\n"
-                f"  - 委派调用: `python .agent_models/delegator.py --model {pid} --task \"<子任务提示词>\"`"
+                f"  - 委派调用: MCP 工具 `delegate_task(task=\"<子任务>\", provider=\"{pid}\", model=\"{model}\")`"
             )
 
         table_lines = [
@@ -2142,87 +2157,30 @@ class ModelConnectGUI(ctk.CTk):
         table_str = "\n".join(table_lines)
         subagents_str = "\n".join(subagent_roles)
 
-        clean_config = {
-            "version": "1.0",
-            "default_model": target_ids[0] if target_ids else "",
-            "models": {
-                m["id"]: {
-                    "name": m["name"],
-                    "model": m["model"],
-                    "protocol": m["protocol"],
-                    "base_url": m["base_url"],
-                    "api_key": m["api_key"],
-                    "thinking_intensity": m["thinking_intensity"],
-                    "role_id": m["role_id"],
-                    "role_title": m["role_title"],
-                    "specialty": m["specialty"]
-                }
-                for m in models_info
-            }
-        }
-        config_json_str = json.dumps(clean_config, ensure_ascii=False, indent=2)
+        prompt = f"""请为当前工作区启用 APIson 多模型委派规则。
 
-        prompt = f"""你现在需要为当前工作区接入多模型协同与子代理（Subagents）调度能力。
-请根据以下选定的外部模型配置与角色规范，**在当前工作区自主完成初始化配置与工具落地**：
+前提：APIson MCP 应已由 APIson 管理面板安装到客户端。请先检查当前工具列表是否存在 `delegate_task`。如果工具不存在，请明确报告“APIson MCP 尚未加载，需要在 APIson 中安装并重启客户端”，不要声称已经委派，也不要临时生成替代脚本。
 
----
-
-### 一、已选定的外部模型清单
+### 可用助手
 
 | 模型标识 | 显示名称 | 具体模型 | 协议 | 思考强度 | 专长定位 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 {table_str}
 
----
-
-### 二、子代理（Subagent）角色规范与委派分工
+### 委派角色
 
 {subagents_str}
 
----
+### 必须遵守的调用规则
 
-### 三、核心调度法则：动态任务分析与主动委派机制（【重要：强制遵守】）
+1. 遇到复杂推理、大规模代码实现、代码审查、批量处理、长文分析，或两个以上可独立执行的子任务时，必须实际调用 `delegate_task`。
+2. 用户明确要求使用 APIson、外部模型或指定 provider 时，必须调用 `delegate_task`，不得直接模拟助手回复。
+3. 调用时传入完整、自包含的 `task`，并根据上表填写 `provider` 和 `model`。
+4. 只有工具返回 `success: true` 后才能声称委派成功；失败时应报告 `error` 并继续处理可完成的部分。
+5. 主 Agent 负责检查、验证并整合外部助手结果。
+6. 不得在项目规则、聊天回复或代码中复制、暴露 API Key。
 
-你作为当前工作区的**总协调指挥官（Chief Orchestrator Agent）**，切忌单打独斗包揽全部复杂工作。你必须在面对用户的每个任务需求时，主动进行**【任务专长分析与动态分派】**：
-
-1. **前置任务分析与专长匹配（Pre-Task Delegation Analysis）**：
-   在开始执行用户任务前，先在思考链中评估当前任务的属性：
-   - 🧠 **深度逻辑 / 复杂算法 / 系统架构权衡 / 高难推理** ➡️ **强制主动调用** 推理专长助手（利用高思考强度深度推演）；
-   - 💻 **大规模核心功能实现 / 模块重构 / 复杂代码补全 / 测试用例编写** ➡️ **强制主动调用** 编程专长助手；
-   - 📚 **长篇文档研读 / 全量日志与大代码库速查 / 多模态理解** ➡️ **强制主动调用** 全景长文助手；
-   - ⚡ **日常轻量问答 / 任务拆解分流 / 助手产出汇总与格式润色** ➡️ 由主指挥官（你）直接处理。
-
-2. **主动执行调用，拒绝闭门硬抗**：
-   - 一旦判断任务契合某助手模型的专长，**必须主动拆解子任务并执行命令行调用**：
-     `python .agent_models/delegator.py --model <助手标识> --task "<具体子任务提示词>"`
-   - 拿到助手模型的专业输出后，由你进行质量验收、校验并整合最终结果呈现给用户。
-   - 在回复中明确注明协同过程（例如：`[🤖 已委派【助手标识】完成深度代码生成与逻辑验证，以下为综合解答...]`）。
-   - **绝不允许忽视已接入的助手模型而自己盲目硬写！**
-
----
-
-### 四、请你在当前工作区执行以下三步初始化（自主完成，无需用户额外干预）：
-
-#### 第一步：创建配置目录与模型注册表
-在当前工程根目录下创建 `.agent_models/config.json`，并将以下完整配置写入该文件：
-```json
-{config_json_str}
-```
-
-#### 第二步：创建自包含免依赖的委派引擎 `.agent_models/delegator.py`
-在当前工程根目录下创建 Python 脚本 `.agent_models/delegator.py`，满足以下要求：
-- 支持命令行调用：`python .agent_models/delegator.py --model <模型标识> --task "<任务提示词>"`，输出模型回复内容。
-- 当不传 `--model` 时，默认使用 `default_model`。
-- 支持 Python 模块直接导入：`from .agent_models.delegator import delegate_task`
-- 脚本自动读取同目录下的 `config.json`，自适配 `openai_chat`、`anthropic`、`gemini` 协议，并在请求中注入对应的 `thinking_intensity` 参数。
-- 仅依赖 Python 内置库 `urllib.request` 或常规 `requests`，具备超时重试与友好的异常处理。
-
-#### 第三步：建立工作区规则与子代理永久生效绑定
-1. 根据当前开发工具类型（如 Antigravity IDE、Cursor、Claude Code 等），将上述**助手清单**以及**“动态任务分析与主动委派机制”**永久写入规则文件（例如写入 `.cursor/rules/agent_delegation.md`、`.cursorrules`、`CLAUDE.md` 或在 Antigravity 中声明 Subagents）。
-2. 将**“遇到专业任务必须先动态分析、主动委派给对应助手 Agent”**作为你的核心工作模式，永久驻留当前工作区。
-
----
-请现在就直接开始生成 `.agent_models/config.json` 和 `.agent_models/delegator.py`，配置完成后向我汇报已就绪的子代理清单与测试方式！
+请把以上规则写入当前项目适用的 Agent 规则文件（例如 `AGENTS.md`、`CLAUDE.md` 或 `.cursor/rules/`），随后调用一次 `delegate_task` 做真实连通性验证，并汇报 provider、model、耗时和 usage。
 """
         return prompt.strip()
 
@@ -2389,6 +2347,40 @@ if __name__ == "__main__":
         self.txt_mcp.delete("1.0", "end")
         self.txt_mcp.insert("1.0", json_str)
 
+    def _install_codex_mcp(self):
+        try:
+            result = install_codex_mcp()
+            backup = result.get("backup")
+            backup_text = f"\n备份文件：{backup}" if backup else ""
+            messagebox.showinfo(
+                "Codex MCP 安装成功",
+                f"✅ {result['message']}\n\n配置文件：{result['config']}"
+                f"{backup_text}\n\n切换 Codex 账号不会删除此本机配置。",
+            )
+        except Exception as exc:
+            messagebox.showerror("Codex MCP 安装失败", str(exc))
+
+    def _test_codex_mcp_threaded(self):
+        self.status_bar.configure(text="⏳ 正在测试 APIson MCP Server...")
+        def _run():
+            status = get_codex_mcp_status()
+            result = test_mcp_server()
+            self.after(0, lambda: self._show_mcp_test(status, result))
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _show_mcp_test(self, status, result):
+        self.status_bar.configure(text="● 系统就绪 · APIson 多模型委派平台")
+        if result.get("success"):
+            installed = "已写入 Codex 配置" if status.get("installed") else "尚未写入 Codex 配置"
+            messagebox.showinfo(
+                "MCP 测试成功",
+                f"✅ {result['message']}\n✅ Server 工具：{', '.join(result.get('tools', []))}"
+                f"\n{'✅' if status.get('installed') else '⚠️'} {installed}\n\n"
+                "此测试不调用外部模型，不消耗 API 额度。",
+            )
+        else:
+            messagebox.showerror("MCP 测试失败", result.get("error") or result.get("message"))
+
     # ─── 复制工具方法 ─────────────────────────────────────────────────────────
 
     def _copy_text(self, text, title="已复制", custom_msg=None):
@@ -2479,7 +2471,9 @@ if __name__ == "__main__":
                 hover_color="#D97706",
                 text_color="#FFFFFF",
             )
-            msg = info.get("remote_message", "")
+            msg = info.get("release_notes") or info.get("remote_message", "")
+            if len(msg) > 3500:
+                msg = msg[:3500] + "\n\n……更多内容请查看 CHANGELOG.md"
             date = info.get("remote_date", "")[:10]
             if manual:
                 if messagebox.askyesno(
@@ -2487,7 +2481,7 @@ if __name__ == "__main__":
                     f"🚀 检测到 GitHub 官方仓库有新版本！\n\n"
                     f"当前本地版本: v{local_sha}\n"
                     f"远程最新版本: v{remote_sha} ({date})\n\n"
-                    f"更新说明: {msg}\n\n"
+                    f"本次更新内容：\n{msg}\n\n"
                     f"是否立即自动拉取并更新？"
                 ):
                     self._do_update_threaded()
@@ -2526,7 +2520,8 @@ if __name__ == "__main__":
         if result.get("success"):
             messagebox.showinfo(
                 "更新成功",
-                "✅ 已更新到最新版本！\n\n请重启应用以使新版本生效。\n\n" + result.get("output", "")[:300]
+                "✅ 已更新到最新版本！\n\n请重启应用以使新版本生效。\n\n"
+                "本次更新内容：\n" + (result.get("release_notes") or result.get("output", ""))[:3500]
             )
             self._check_for_updates_threaded(manual=False)
         else:
