@@ -19,11 +19,18 @@ if str(_AGENT_DIR) not in sys.path:
     sys.path.insert(0, str(_AGENT_DIR))
 
 from tools.delegate import delegate_task, _load_state
+from tools.orchestrate import delegate_tasks, review_results
 
 SERVER_INFO = {
     "name": "agent-model-connect",
-    "version": "1.0.0"
+    "version": "1.1.0"
 }
+
+SERVER_INSTRUCTIONS = (
+    "APIson 提供外部模型协作能力。单项任务使用 delegate_task；两个以上可独立完成的任务应使用 "
+    "delegate_tasks 并发执行；并发结果完成后使用 review_results 独立评分。主 Agent 应先定义模块边界和"
+    "接口契约，避免多个 Agent 修改同一文件，并负责最终集成和测试。只有工具返回成功后才能声称已委派。"
+)
 
 TOOL_DEFINITION = {
     "name": "delegate_task",
@@ -52,6 +59,71 @@ TOOL_DEFINITION = {
             }
         },
         "required": ["task"]
+    }
+}
+
+BATCH_TOOL_DEFINITION = {
+    "name": "delegate_tasks",
+    "description": (
+        "将两个或以上彼此独立的子任务同时委派给多个外部 Agent 并发执行。"
+        "适合大型项目中的前端、后端、接口、文档、测试等并行分工；返回顺序与输入一致。"
+    ),
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "tasks": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string", "description": "稳定的子任务标识"},
+                        "task": {"type": "string", "description": "完整、自包含的子任务说明"},
+                        "provider": {"type": "string", "description": "可选模型厂商"},
+                        "model": {"type": "string", "description": "可选模型名称"},
+                        "system_prompt": {"type": "string", "description": "可选角色说明"},
+                        "timeout": {"type": "integer", "minimum": 1, "maximum": 300, "default": 60}
+                    },
+                    "required": ["task"]
+                }
+            },
+            "max_workers": {"type": "integer", "minimum": 1, "maximum": 8, "default": 4}
+        },
+        "required": ["tasks"]
+    }
+}
+
+REVIEW_TOOL_DEFINITION = {
+    "name": "review_results",
+    "description": (
+        "让独立评审 Agent 并发审查并为多个交付结果打 0-100 分，返回问题和修改建议。"
+        "应在 delegate_tasks 完成后使用，主 Agent 根据评分决定验收或返工。"
+    ),
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "items": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "task": {"type": "string", "description": "原始任务"},
+                        "result": {"type": "string", "description": "待评审的交付内容"}
+                    },
+                    "required": ["result"]
+                }
+            },
+            "rubric": {"type": "string", "description": "评分标准"},
+            "provider": {"type": "string", "description": "评审模型厂商"},
+            "model": {"type": "string", "description": "评审模型名称"},
+            "max_workers": {"type": "integer", "minimum": 1, "maximum": 8, "default": 4},
+            "timeout": {"type": "integer", "minimum": 1, "maximum": 300, "default": 90}
+        },
+        "required": ["items", "rubric"]
     }
 }
 
@@ -90,7 +162,8 @@ def handle_request(req):
                 "capabilities": {
                     "tools": {}
                 },
-                "serverInfo": SERVER_INFO
+                "serverInfo": SERVER_INFO,
+                "instructions": SERVER_INSTRUCTIONS
             }
         })
     elif method == "notifications/initialized":
@@ -100,7 +173,7 @@ def handle_request(req):
             "jsonrpc": "2.0",
             "id": req_id,
             "result": {
-                "tools": [TOOL_DEFINITION]
+                "tools": [TOOL_DEFINITION, BATCH_TOOL_DEFINITION, REVIEW_TOOL_DEFINITION]
             }
         })
     elif method == "tools/call":
@@ -145,6 +218,42 @@ def handle_request(req):
                         ],
                         "isError": True
                     }
+                })
+        elif tool_name == "delegate_tasks":
+            try:
+                res = delegate_tasks(
+                    tasks=args.get("tasks", []),
+                    max_workers=args.get("max_workers", 4),
+                )
+                send_response({
+                    "jsonrpc": "2.0", "id": req_id,
+                    "result": {"content": [{"type": "text", "text": json.dumps(res, ensure_ascii=False, indent=2)}],
+                               "isError": False}
+                })
+            except Exception as e:
+                send_response({
+                    "jsonrpc": "2.0", "id": req_id,
+                    "result": {"content": [{"type": "text", "text": f"并发委派异常: {e}"}], "isError": True}
+                })
+        elif tool_name == "review_results":
+            try:
+                res = review_results(
+                    items=args.get("items", []),
+                    rubric=args.get("rubric", ""),
+                    provider=args.get("provider"),
+                    model=args.get("model"),
+                    max_workers=args.get("max_workers", 4),
+                    timeout=args.get("timeout", 90),
+                )
+                send_response({
+                    "jsonrpc": "2.0", "id": req_id,
+                    "result": {"content": [{"type": "text", "text": json.dumps(res, ensure_ascii=False, indent=2)}],
+                               "isError": False}
+                })
+            except Exception as e:
+                send_response({
+                    "jsonrpc": "2.0", "id": req_id,
+                    "result": {"content": [{"type": "text", "text": f"评审异常: {e}"}], "isError": True}
                 })
         else:
             send_error(req_id, -32601, f"未找到工具: {tool_name}")

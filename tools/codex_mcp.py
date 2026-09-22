@@ -97,12 +97,13 @@ def test_mcp_server(timeout: int = 10) -> dict:
             if response.get("id") == 2:
                 tools = response.get("result", {}).get("tools", [])
         names = [tool.get("name") for tool in tools]
-        ok = proc.returncode == 0 and "delegate_task" in names
+        required = {"delegate_task", "delegate_tasks", "review_results"}
+        ok = proc.returncode == 0 and required.issubset(names)
         return {
             "success": ok,
             "tools": names,
             "error": proc.stderr.strip() if not ok else "",
-            "message": "MCP Server 正常，delegate_task 已注册" if ok else "MCP Server 未返回 delegate_task",
+            "message": "MCP Server 正常，单任务、并发委派和评分工具均已注册" if ok else "MCP Server 工具注册不完整",
         }
     except Exception as exc:
         return {"success": False, "tools": [], "error": str(exc), "message": "MCP Server 测试失败"}

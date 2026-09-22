@@ -46,6 +46,8 @@ python D:\newzm\assets\AntigravityPro\agent\tools\delegate.py "提取以下数�
 
 如果你的环境加载了 `agent-model-connect` MCP 服务，你可以直接像调用系统原生工具一样调用 `delegate_task(task="...")`。
 
+大型任务使用 `delegate_tasks(tasks=[...])` 将多个独立子任务并发执行。完成后使用 `review_results(items=[...], rubric="...")` 让独立评审 Agent 打分。低于项目验收线的结果应根据问题清单返工。
+
 ### 途径 D：通过本地 HTTP OpenAI 代理
 
 在终端执行 `python manager.py serve` 后，任何 Agent 都可以请求：
@@ -60,3 +62,5 @@ python D:\newzm\assets\AntigravityPro\agent\tools\delegate.py "提取以下数�
 1. **大任务拆分**：主 Agent 负责规划步骤，把细碎且重复的单元（如逐个文件编写、批量测试用例生成）逐项发给 `grok-4.6`。
 2. **上下文精确**：委派给 `task` 的内容应当包含足够的上下文，让 Grok 能够独立完成该单项任务。
 3. **结果校验**：委派返回后，主 Agent 负责校验其返回结果并汇总呈现给用户。
+4. **并发协作**：前端、后端、接口、测试等任务只有在边界和接口契约明确后才并发；不要让多个 Agent 同时修改同一文件。
+5. **独立评分**：实现 Agent 不给自己的结果打分，使用独立评审 Agent，主 Agent 根据评分和实际测试决定验收。

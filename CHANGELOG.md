@@ -6,6 +6,8 @@
 
 ### 新增
 
+- 新增 `delegate_tasks`，支持最多 16 个子任务、8 个工作线程并发委派。
+- 新增 `review_results`，支持独立评审 Agent 并发评分、列出问题和修改建议。
 - 支持一键将 APIson MCP Server 安装到 Codex 的本机全局配置。
 - 支持检测 Codex MCP 安装状态并测试 `delegate_task` 是否成功注册。
 - 增加委派调用日志，记录模型、耗时、Token 用量和错误，不保存任务及回复正文。

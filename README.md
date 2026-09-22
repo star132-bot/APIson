@@ -72,6 +72,16 @@ APIson/
 
 点击 **🧪 测试 MCP** 可以检查 MCP Server 和工具注册，不会调用外部模型，也不消耗 API 额度。Codex 登录账号切换不会删除这份本机配置。
 
+APIson 同时提供三个 MCP 工具：
+
+- `delegate_task`：委派一个独立任务；
+- `delegate_tasks`：将前端、后端、接口、测试等多个独立任务并发执行；
+- `review_results`：让独立评审 Agent 对交付结果打分并给出返工建议。
+
+每个并发子任务可单独设置 `timeout`（最长 300 秒）；评审默认允许 90 秒，适合需要深度推理的评分模型。
+
+大型项目建议先由主 Agent 定义模块边界和接口契约，再并发委派互不覆盖文件的任务。并发完成后先评分，低于验收线的结果返工，最后由主 Agent 集成和运行完整测试。
+
 提示词只定义 Agent 何时调用 `delegate_task`，不能代替 MCP 安装。只有实际出现 `delegate_task` 工具调用并返回 `success: true`，才表示发生了委派。每次调用的模型、耗时、用量及错误会记录到本机 `logs/delegations.jsonl`，任务正文与模型回复不会写入日志。
 
 ### 方式 1：标准 MCP 协议接入（Cursor / Antigravity / Windsurf 等）

@@ -2159,7 +2159,7 @@ class ModelConnectGUI(ctk.CTk):
 
         prompt = f"""请为当前工作区启用 APIson 多模型委派规则。
 
-前提：APIson MCP 应已由 APIson 管理面板安装到客户端。请先检查当前工具列表是否存在 `delegate_task`。如果工具不存在，请明确报告“APIson MCP 尚未加载，需要在 APIson 中安装并重启客户端”，不要声称已经委派，也不要临时生成替代脚本。
+前提：APIson MCP 应已由 APIson 管理面板安装到客户端。请先检查当前工具列表是否存在 `delegate_task`、`delegate_tasks` 和 `review_results`。如果工具不存在，请明确报告“APIson MCP 尚未加载，需要在 APIson 中安装并重启客户端”，不要声称已经委派，也不要临时生成替代脚本。
 
 ### 可用助手
 
@@ -2173,12 +2173,14 @@ class ModelConnectGUI(ctk.CTk):
 
 ### 必须遵守的调用规则
 
-1. 遇到复杂推理、大规模代码实现、代码审查、批量处理、长文分析，或两个以上可独立执行的子任务时，必须实际调用 `delegate_task`。
-2. 用户明确要求使用 APIson、外部模型或指定 provider 时，必须调用 `delegate_task`，不得直接模拟助手回复。
-3. 调用时传入完整、自包含的 `task`，并根据上表填写 `provider` 和 `model`。
-4. 只有工具返回 `success: true` 后才能声称委派成功；失败时应报告 `error` 并继续处理可完成的部分。
-5. 主 Agent 负责检查、验证并整合外部助手结果。
-6. 不得在项目规则、聊天回复或代码中复制、暴露 API Key。
+1. 单个复杂推理、代码审查或长文分析任务使用 `delegate_task`。
+2. 两个以上彼此独立的子任务必须使用 `delegate_tasks` 一次性并发委派；先定义模块边界、接口契约和各自负责的文件，避免互相覆盖。
+3. 并发结果返回后使用 `review_results` 让独立评审 Agent 评分；低于验收线的结果应带着问题清单重新委派。
+4. 用户明确要求使用 APIson、外部模型或指定 provider 时，必须实际调用工具，不得直接模拟助手回复。
+5. 调用时传入完整、自包含的任务说明，并根据上表填写 `provider` 和 `model`。
+6. 只有工具返回 `success: true` 后才能声称委派成功；失败时应报告 `error` 并继续处理可完成的部分。
+7. 主 Agent 负责最终集成、运行完整测试和交付。
+8. 不得在项目规则、聊天回复或代码中复制、暴露 API Key。
 
 请把以上规则写入当前项目适用的 Agent 规则文件（例如 `AGENTS.md`、`CLAUDE.md` 或 `.cursor/rules/`），随后调用一次 `delegate_task` 做真实连通性验证，并汇报 provider、model、耗时和 usage。
 """
