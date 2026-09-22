@@ -6,6 +6,9 @@
 
 ### 新增
 
+- 新增 MK 开发者品牌图标，并提供 PNG、Windows ICO、macOS ICNS 三种格式。
+- 新增一眼可识别的打开入口：Windows `打开 APIson.bat`、macOS `APIson.app`、Linux `APIson.desktop`。
+- Windows 可一键创建带 MK 图标的桌面快捷方式。
 - 新增跨平台 `bootstrap.py`，首次运行自动创建虚拟环境并安装依赖。
 - 新增 Windows 的 `start_gui.bat` 和 `start_gateway.bat` 启动入口。
 - Codex MCP 安装和配置导出会按 Windows、macOS、Linux 自动选择正确的 Python 路径。

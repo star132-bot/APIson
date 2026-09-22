@@ -1,5 +1,15 @@
 # Agent Model Connect (APIson) — 多模型调度与助手委派平台
 
+![APIson MK 图标](assets/icon-mk.png)
+
+## 第一次打开
+
+- **Windows**：双击 **`打开 APIson.bat`**。需要桌面图标时，再双击 **`创建 Windows 桌面快捷方式.bat`**。
+- **macOS**：双击 **`APIson.app`**，也可以双击 **`打开 APIson.command`**。
+- **Linux**：运行一次 **`./安装 Linux 桌面快捷方式.sh`** 加入应用菜单，也可以双击 `APIson.desktop`。
+
+看到带金色 **MK** 图标的窗口，就表示打开的是 APIson 管理面板。
+
 用于给你的各类 AI Agent（Antigravity、Cursor、Claude Code、Codex CLI、Dify、Cline、Trae 等）统一接入与调度外部大模型池（火山引擎方舟、DeepSeek、阿里百炼、智谱、Kimi、硅基流动、Claude 3.7、Gemini 2.5、OpenAI、Grok、OpenRouter、本地 Ollama 等）。
 
 主 Agent 保持原有工作流不变，遇到复杂代码、长文本、重度推理或特定专长任务时，可将子任务**安全委派**给外部助手模型或子代理（Subagents）执行。
@@ -59,6 +69,11 @@ APIson/
 ├── start_gui.bat               # Windows GUI 启动脚本
 ├── start_gateway.bat           # Windows 网关启动脚本
 ├── bootstrap.py                # 跨平台环境准备和统一启动器
+├── APIson.app                  # macOS 双击启动应用
+├── APIson.desktop              # Linux 桌面启动入口
+├── 打开 APIson.bat             # Windows 最明显的启动入口
+├── 打开 APIson.command         # macOS 备用启动入口
+├── assets/icon-mk.*            # MK 品牌图标（PNG/ICO/ICNS）
 └── requirements.txt            # Python 依赖清单
 ```
 

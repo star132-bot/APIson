@@ -16,7 +16,7 @@ import json
 import time
 import threading
 from pathlib import Path
-from tkinter import messagebox
+from tkinter import PhotoImage, messagebox
 import customtkinter as ctk
 
 # 路径定位
@@ -312,13 +312,17 @@ class ModelConnectGUI(ctk.CTk):
         self.configure(fg_color=("#F1F5F9", "#0B0F19"))
 
 
-        # 加载应用图标
-        ico_file = _ROOT / "icon.ico"
-        if ico_file.exists():
-            try:
+        # 加载 MK 品牌图标。PNG 适用于 Tk 全平台，ICO 为 Windows 补充。
+        png_icon = _ROOT / "assets" / "icon-mk.png"
+        ico_file = _ROOT / "assets" / "icon-mk.ico"
+        try:
+            if png_icon.exists():
+                self._app_icon = PhotoImage(file=str(png_icon))
+                self.iconphoto(True, self._app_icon)
+            if sys.platform.startswith("win") and ico_file.exists():
                 self.iconbitmap(str(ico_file))
-            except Exception:
-                pass
+        except Exception:
+            pass
 
         # 核心数据状态
         self.current_state = load_state_dict()
